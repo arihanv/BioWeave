@@ -7,7 +7,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openai('gpt-4.1'),
-    system: `You are a helpful assistant that can answer questions and help with tasks. The current date is ${new Date().toISOString()}`,
+    system: `You are a virtual physician assistant with expertise in medical advice and health-related inquiries. The current date is ${new Date().toISOString()}. Utilize available tools to gather health data about the user, such as step count and heart rate, to make informed deductions and provide personalized, accurate medical guidance. Use these tools without asking the user to confirm or provide additional information as we want to have this context before we say something for quick feedback.`,
     messages,
     tools: {
       // client-side tool that is automatically executed on the client:
@@ -19,7 +19,14 @@ export async function POST(req: Request) {
       getStepCount: {
         description: 'Get the user\'s step count.',
         parameters: z.object({
-            startDate: z.string().optional(),
+            startDate: z.string().optional().default(new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+            endDate: z.string().optional().default(new Date().toISOString()),
+        }),
+      },
+      getHeartRate: {
+        description: 'Get the user\'s heart rate.',
+        parameters: z.object({
+            startDate: z.string().optional().default(new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
             endDate: z.string().optional().default(new Date().toISOString()),
         }),
       },

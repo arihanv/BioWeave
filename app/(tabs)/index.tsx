@@ -11,35 +11,35 @@ import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useAppleHealthKit } from "@/hooks/useAppleHealthKit"; // 👈 your hook
 
 export default function TabTwoScreen() {
-	const { status, error, getStepCountSamples } = useAppleHealthKit();
-	const [steps, setSteps] = useState<number | null>(null);
+	// const { status, error, getStepCountSamples } = useAppleHealthKit();
+	// const [steps, setSteps] = useState<number | null>(null);
 
-	useEffect(() => {
-		if (status === "ready") {
-			console.log("Fetching step count samples");
-			getStepCountSamples({
-				startDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // past 24 hours
-				endDate: new Date().toISOString(),
-			})
-				.then((results) => {
-					console.log("Step count samples fetched:", results);
-					if (Array.isArray(results) && results.length > 0) {
-						// Sum up the values if results is an array
-						const totalSteps = results.reduce(
-							(sum, item) => sum + (item.value || 0),
-							0,
-						);
-						setSteps(totalSteps);
-					} else if (results && typeof results.value === "number") {
-						// Handle the case where results is a single object
-						setSteps(results.value);
-					}
-				})
-				.catch((err) => {
-					console.error("Step count fetch error:", err);
-				});
-		}
-	}, [status, getStepCountSamples]);
+	// useEffect(() => {
+	// 	if (status === "ready") {
+	// 		console.log("Fetching step count samples");
+	// 		getStepCountSamples({
+	// 			startDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // past 24 hours
+	// 			endDate: new Date().toISOString(),
+	// 		})
+	// 			.then((results) => {
+	// 				console.log("Step count samples fetched:", results);
+	// 				if (Array.isArray(results) && results.length > 0) {
+	// 					// Sum up the values if results is an array
+	// 					const totalSteps = results.reduce(
+	// 						(sum, item) => sum + (item.value || 0),
+	// 						0,
+	// 					);
+	// 					setSteps(totalSteps);
+	// 				} else if (results && typeof results.value === "number") {
+	// 					// Handle the case where results is a single object
+	// 					setSteps(results.value);
+	// 				}
+	// 			})
+	// 			.catch((err) => {
+	// 				console.error("Step count fetch error:", err);
+	// 			});
+	// 	}
+	// }, [status, getStepCountSamples]);
 
 	return (
 		<ParallaxScrollView
@@ -62,11 +62,11 @@ export default function TabTwoScreen() {
 			</ThemedText>
 
 			{/* ✅ HealthKit Integration */}
-			<Collapsible title="Apple HealthKit">
+			{/* <Collapsible title="Apple HealthKit">
 				<ThemedText>Status: {status}</ThemedText>
 				{error && <ThemedText>Error: {error}</ThemedText>}
 				{steps !== null && <ThemedText>Steps in last 24h: {steps}</ThemedText>}
-			</Collapsible>
+			</Collapsible> */}
 
 			<Collapsible title="File-based routing">
 				<ThemedText>
