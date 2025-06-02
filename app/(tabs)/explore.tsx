@@ -1,6 +1,8 @@
+import ConversationListModal from "@/components/ui/ConversationListModal";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useAppleHealthKit } from "@/hooks/useAppleHealthKit";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
+import { useChatStorage } from "@/hooks/useChatStorage";
 import { useChat } from "@ai-sdk/react";
 import { useKeyboard } from "@react-native-community/hooks";
 import { fetch as expoFetch } from "expo/fetch";
@@ -57,6 +59,22 @@ export default function App() {
 		getStepCountSamples,
     getHeartRateSamples,
 	} = useAppleHealthKit();
+
+	// Chat storage
+	const {
+		conversations,
+		currentConversationId,
+		isLoading: isStorageLoading,
+		createNewConversation,
+		saveCurrentConversation,
+		loadConversation,
+		setCurrentConversation,
+		deleteConversation,
+		clearAllConversations,
+	} = useChatStorage();
+
+	// Modal state
+	const [showConversationList, setShowConversationList] = React.useState(false);
 	
 	const [containerHeight, setContainerHeight] = React.useState(0);
 	const [contentHeight, setContentHeight] = React.useState(0);
@@ -109,6 +127,7 @@ export default function App() {
 		// 		content: "Your sleep for the last 7 days is 7 hours.",
 		// 	},
 		// ],
+		// api: "http://localhost:8081/api/chat",
 		api: "https://expo.ariv.sh/api/chat",
 		onError: (error) => console.error(error, "ERROR"),
 		async onToolCall({ toolCall }) {
@@ -280,6 +299,68 @@ export default function App() {
 		LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 	}, []);
 
+	// Track if we're loading a conversation to prevent save loops
+	const [isLoadingConversation, setIsLoadingConversation] = React.useState(false);
+	const isInitialLoad = React.useRef(true);
+
+	// Load conversation on mount or when current conversation changes
+	React.useEffect(() => {
+		if (!isStorageLoading && currentConversationId) {
+			setIsLoadingConversation(true);
+			const conversation = conversations.find(conv => conv.id === currentConversationId);
+			if (conversation) {
+				setMessages(conversation.messages);
+			}
+			setIsLoadingConversation(false);
+		}
+	}, [currentConversationId, isStorageLoading, conversations]);
+
+	// Save current conversation whenever messages change (but not when loading)
+	const saveTimeoutRef = React.useRef<NodeJS.Timeout>();
+	React.useEffect(() => {
+		// Skip saving on initial load
+		if (isInitialLoad.current) {
+			isInitialLoad.current = false;
+			return;
+		}
+
+		if (!isStorageLoading && !isLoadingConversation && messages.length > 0) {
+			// Debounce the save to prevent too many saves
+			if (saveTimeoutRef.current) {
+				clearTimeout(saveTimeoutRef.current);
+			}
+			saveTimeoutRef.current = setTimeout(() => {
+				saveCurrentConversation(messages);
+			}, 1000); // Save after 1 second of no changes
+		}
+
+		return () => {
+			if (saveTimeoutRef.current) {
+				clearTimeout(saveTimeoutRef.current);
+			}
+		};
+	}, [messages, isStorageLoading, isLoadingConversation]);
+
+	// Chat handlers
+	const handleNewConversation = async () => {
+		setIsLoadingConversation(true);
+		setMessages([]);
+		await createNewConversation();
+		setIsLoadingConversation(false);
+	};
+
+	const handleSelectConversation = (conversationId: string) => {
+		setCurrentConversation(conversationId);
+	};
+
+	const handleClearChat = () => {
+		setIsLoadingConversation(true);
+		setMessages([]);
+		if (currentConversationId) {
+			deleteConversation(currentConversationId);
+		}
+		setIsLoadingConversation(false);
+	};
 
 	return (
 		<SafeAreaView style={styles.safeArea}>
@@ -289,6 +370,25 @@ export default function App() {
 				keyboardVerticalOffset={0}
 				>
 				<View style={styles.container}>
+					{/* Header with conversation list button */}
+					<View style={styles.header}>
+						<Text style={styles.headerTitle}>Health Assistant</Text>
+						<TouchableOpacity
+							style={styles.conversationListButton}
+							onPress={() => setShowConversationList(true)}
+							accessibilityRole="button"
+							accessibilityLabel="View conversations"
+						>
+							<IconSymbol name="message" size={20} color="#007aff" />
+							{conversations.length > 0 && (
+								<View style={styles.conversationBadge}>
+									<Text style={styles.conversationBadgeText}>
+										{conversations.length}
+									</Text>
+								</View>
+							)}
+						</TouchableOpacity>
+					</View>
 					<ScrollView
 					ref={scrollViewRef}
 					style={styles.messagesContainer}
@@ -457,16 +557,36 @@ export default function App() {
 							</TouchableOpacity>
 						)}
 						<TouchableOpacity
-							style={styles.trashButton}
-							onPress={() => setMessages([])}
+							style={styles.actionButton}
+							onPress={handleNewConversation}
 							accessibilityRole="button"
-							accessibilityLabel="Clear chat messages"
+							accessibilityLabel="Start new conversation"
 						>
-							<IconSymbol name="trash.fill" size={22} color="#888" />
+							<IconSymbol name="plus" size={22} color="#007aff" />
+						</TouchableOpacity>
+						<TouchableOpacity
+							style={styles.actionButton}
+							onPress={handleClearChat}
+							accessibilityRole="button"
+							accessibilityLabel="Clear current chat"
+						>
+							<IconSymbol name="trash.fill" size={22} color="#ff3b30" />
 						</TouchableOpacity>
 					</View>
 				</View>
 			</KeyboardAvoidingView>
+
+			{/* Conversation List Modal */}
+			<ConversationListModal
+				visible={showConversationList}
+				onClose={() => setShowConversationList(false)}
+				conversations={conversations}
+				currentConversationId={currentConversationId}
+				onSelectConversation={handleSelectConversation}
+				onDeleteConversation={deleteConversation}
+				onNewConversation={handleNewConversation}
+				onClearAll={clearAllConversations}
+			/>
 		</SafeAreaView>
 	);
 }
@@ -481,7 +601,7 @@ const styles = StyleSheet.create({
 	},
 	container: {
 		flex: 1,
-		paddingTop: 8,
+		paddingTop: 0,
 		paddingBottom: 0,
 		justifyContent: "flex-end",
 	},
@@ -604,7 +724,48 @@ const styles = StyleSheet.create({
 		fontWeight: "bold",
 		fontSize: 16,
 	},
-	trashButton: {
+	header: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		backgroundColor: "#fff",
+		borderBottomWidth: 1,
+		borderBottomColor: "#e0e0e0",
+	},
+	headerTitle: {
+		fontSize: 18,
+		fontWeight: "600",
+		color: "#222",
+	},
+	conversationListButton: {
+		position: "relative",
+		padding: 8,
+		borderRadius: 20,
+		backgroundColor: "#f2f2f7",
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	conversationBadge: {
+		position: "absolute",
+		top: -2,
+		right: -2,
+		backgroundColor: "#ff3b30",
+		borderRadius: 10,
+		minWidth: 20,
+		height: 20,
+		justifyContent: "center",
+		alignItems: "center",
+		borderWidth: 2,
+		borderColor: "#fff",
+	},
+	conversationBadgeText: {
+		color: "#fff",
+		fontSize: 12,
+		fontWeight: "600",
+	},
+	actionButton: {
 		marginLeft: 8,
 		padding: 6,
 		borderRadius: 16,
