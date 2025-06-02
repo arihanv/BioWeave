@@ -70,43 +70,43 @@ export default function App() {
 	} = useChat({
 		fetch: expoFetch as unknown as typeof globalThis.fetch,
 		maxSteps: 10,
-		initialMessages: [
-			{
-				id: "1",
-				role: "assistant",
-				content: "Hello! I'm your health assistant. How can I help you today?",
-			},
-			{
-				id: "2",
-				role: "user",
-				content: "What is my step count for the last 7 days?",
-			},
-			{
-				id: "3",
-				role: "assistant",
-				content: "Your step count for the last 7 days is 10,000 steps.",
-			},
-			{
-				id: "4",
-				role: "user",
-				content: "What is my heart rate for the last 7 days?",
-			},
-			{
-				id: "5",
-				role: "assistant",
-				content: "Your heart rate for the last 7 days is 100 bpm.",
-			},
-			{
-				id: "6",
-				role: "user",
-				content: "What is my sleep for the last 7 days?",
-			},
-			{
-				id: "7",
-				role: "assistant",
-				content: "Your sleep for the last 7 days is 7 hours.",
-			},
-		],
+		// initialMessages: [
+		// 	{
+		// 		id: "1",
+		// 		role: "assistant",
+		// 		content: "Hello! I'm your health assistant. How can I help you today?",
+		// 	},
+		// 	{
+		// 		id: "2",
+		// 		role: "user",
+		// 		content: "What is my step count for the last 7 days?",
+		// 	},
+		// 	{
+		// 		id: "3",
+		// 		role: "assistant",
+		// 		content: "Your step count for the last 7 days is 10,000 steps.",
+		// 	},
+		// 	{
+		// 		id: "4",
+		// 		role: "user",
+		// 		content: "What is my heart rate for the last 7 days?",
+		// 	},
+		// 	{
+		// 		id: "5",
+		// 		role: "assistant",
+		// 		content: "Your heart rate for the last 7 days is 100 bpm.",
+		// 	},
+		// 	{
+		// 		id: "6",
+		// 		role: "user",
+		// 		content: "What is my sleep for the last 7 days?",
+		// 	},
+		// 	{
+		// 		id: "7",
+		// 		role: "assistant",
+		// 		content: "Your sleep for the last 7 days is 7 hours.",
+		// 	},
+		// ],
 		api: "https://expo.ariv.sh/api/chat",
 		onError: (error) => console.error(error, "ERROR"),
 		async onToolCall({ toolCall }) {
@@ -228,6 +228,7 @@ export default function App() {
 	
 	// Check scroll position when message content changes (for streaming)
 	React.useEffect(() => {
+		console.log("messages", JSON.stringify(messages))
 		if (messages.length > 0) {
 			const lastMessage = messages[messages.length - 1];
 			if (lastMessage?.role === 'assistant' && lastMessage.content !== lastContentRef.current) {
@@ -313,6 +314,7 @@ export default function App() {
 						}
 					}}
 						>
+						{/* <Text>{JSON.stringify(messages)}</Text> */}
 						{messages.map((m) => (
 							<View
 								key={m.id}
@@ -339,6 +341,55 @@ export default function App() {
 									<Text style={m.role === "user" ? styles.messageTextUser : styles.messageText}>
 										{m.content}
 									</Text>
+									
+									{/* Display health data sources for assistant messages */}
+									{m.role === "assistant" && m.toolInvocations && m.toolInvocations.length > 0 && (
+										<View style={styles.dataSourceContainer}>
+											{m.toolInvocations
+												.filter((toolInvocation: any) => toolInvocation.state === "result" && toolInvocation.result)
+												.map((toolInvocation: any, index: number) => {
+													const getDisplayInfo = (toolName: string) => {
+														switch (toolName) {
+															case "getStepCount":
+																return { icon: "👣", label: "Step Count Data" };
+															case "getHeartRate":
+																return { icon: "❤️", label: "Heart Rate Data" };
+															default:
+																return { icon: "📊", label: "Health Data" };
+														}
+													};
+
+													const { icon, label } = getDisplayInfo(toolInvocation.toolName);
+													
+													return (
+														<View key={index} style={styles.dataSource}>
+															<Text style={styles.dataSourceTitle}>
+																{icon} {label}
+															</Text>
+															{toolInvocation.result && Array.isArray(toolInvocation.result) && toolInvocation.result.length > 0 && (
+																<View style={styles.dataDetails}>
+																	{toolInvocation.result.map((item: any, itemIndex: number) => (
+																		<View key={itemIndex} style={styles.dataItem}>
+																			{item.value && (
+																				<Text style={styles.dataValue}>
+																					{Math.round(item.value).toLocaleString()} {toolInvocation.toolName === "getStepCount" ? "steps" : "bpm"}
+																				</Text>
+																			)}
+																			{item.startDate && (
+																				<Text style={styles.dataDate}>
+																					{new Date(item.startDate).toLocaleDateString()}
+																				</Text>
+																			)}
+																		</View>
+																	))}
+																</View>
+															)}
+														</View>
+													);
+												})
+											}
+										</View>
+									)}
 								</View>
 							</View>
 						))}
@@ -543,5 +594,51 @@ const styles = StyleSheet.create({
 		elevation: 3,
 		borderWidth: 1,
 		borderColor: "#e0e0e0",
+	},
+	dataSourceContainer: {
+		marginTop: 8,
+		borderTopWidth: 1,
+		borderTopColor: "#d0d0d0",
+		paddingTop: 8,
+	},
+	dataSource: {
+		backgroundColor: "#f8f9fa",
+		borderRadius: 8,
+		padding: 10,
+		marginBottom: 6,
+		borderWidth: 1,
+		borderColor: "#e9ecef",
+	},
+	dataSourceTitle: {
+		fontSize: 12,
+		fontWeight: "600",
+		color: "#495057",
+		marginBottom: 6,
+	},
+	dataDetails: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: 8,
+	},
+	dataItem: {
+		backgroundColor: "#fff",
+		borderRadius: 6,
+		padding: 6,
+		borderWidth: 1,
+		borderColor: "#dee2e6",
+		minWidth: 80,
+		alignItems: "center",
+	},
+	dataValue: {
+		fontSize: 13,
+		fontWeight: "600",
+		color: "#212529",
+		textAlign: "center",
+	},
+	dataDate: {
+		fontSize: 10,
+		color: "#6c757d",
+		marginTop: 2,
+		textAlign: "center",
 	},
 });
