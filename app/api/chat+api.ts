@@ -9,6 +9,7 @@ export async function POST(req: Request) {
     model: openai('gpt-4.1'),
     system: `You are a virtual physician assistant with expertise in medical advice and health-related inquiries. The current date is ${new Date().toISOString()}. Utilize available tools to gather health data about the user, such as step count and heart rate, to make informed deductions and provide personalized, accurate medical guidance. Use these tools without asking the user to confirm or provide additional information as we want to have this context before we say something for quick feedback.`,
     messages,
+    abortSignal: req.signal,
     tools: {
       // client-side tool that is automatically executed on the client:
       getLocation: {
@@ -33,10 +34,25 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toDataStreamResponse({
-    headers: {
-      'Content-Type': 'application/octet-stream',
-      'Content-Encoding': 'none',
-    },
-  });
+  try {
+    return result.toDataStreamResponse({
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'Content-Encoding': 'none',
+      },
+    });
+  } catch (err) {
+    // Ignore abort/premature close errors
+    if (
+      err?.message?.toLowerCase().includes('premature close') ||
+      err?.message?.toLowerCase().includes('abort') ||
+      err?.message?.toLowerCase().includes('fetch failed')
+    ) {
+      // Silent ignore, do not log
+      return new Response(null, { status: 499 }); // Non-standard code for "Client Closed Request"
+    }
+    // Log or rethrow unexpected errors
+    console.error(err);
+    return new Response('Internal Server Error', { status: 500 });
+  }
 }

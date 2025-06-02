@@ -67,6 +67,8 @@ export default function App() {
 		input,
 		handleSubmit,
 		setMessages,
+		stop,
+		isLoading,
 	} = useChat({
 		fetch: expoFetch as unknown as typeof globalThis.fetch,
 		maxSteps: 10,
@@ -278,7 +280,6 @@ export default function App() {
 		LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 	}, []);
 
-	if (error) return <Text>{error.message}</Text>;
 
 	return (
 		<SafeAreaView style={styles.safeArea}>
@@ -435,14 +436,26 @@ export default function App() {
 							enablesReturnKeyAutomatically={true}
 							keyboardAppearance="light"
 						/>
-						<TouchableOpacity
-							style={styles.sendButton}
-							onPress={handleSubmit}
-							accessibilityRole="button"
-							accessibilityLabel="Send message"
-						>
-							<Text style={styles.sendButtonText}>Send</Text>
-						</TouchableOpacity>
+						{isLoading ? (
+							<TouchableOpacity
+								style={styles.stopButton}
+								onPress={stop}
+								accessibilityRole="button"
+								accessibilityLabel="Stop generating"
+							>
+								<Text style={styles.stopButtonText}>Stop</Text>
+							</TouchableOpacity>
+						) : (
+							<TouchableOpacity
+								style={[styles.sendButton, input.trim().length === 0 && styles.sendButtonDisabled]}
+								onPress={handleSubmit}
+								disabled={input.trim().length === 0}
+								accessibilityRole="button"
+								accessibilityLabel="Send message"
+							>
+								<Text style={[styles.sendButtonText, input.trim().length === 0 && styles.sendButtonTextDisabled]}>Send</Text>
+							</TouchableOpacity>
+						)}
 						<TouchableOpacity
 							style={styles.trashButton}
 							onPress={() => setMessages([])}
@@ -567,7 +580,26 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 18,
 		marginLeft: 8,
 	},
+	sendButtonDisabled: {
+		backgroundColor: "#c7c7cc",
+		opacity: 0.6,
+	},
 	sendButtonText: {
+		color: "#fff",
+		fontWeight: "bold",
+		fontSize: 16,
+	},
+	sendButtonTextDisabled: {
+		color: "#8e8e93",
+	},
+	stopButton: {
+		backgroundColor: "#ff3b30",
+		borderRadius: 20,
+		paddingVertical: 8,
+		paddingHorizontal: 18,
+		marginLeft: 8,
+	},
+	stopButtonText: {
 		color: "#fff",
 		fontWeight: "bold",
 		fontSize: 16,
