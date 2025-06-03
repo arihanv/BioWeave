@@ -1,8 +1,9 @@
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useAppleHealthKit } from "@/hooks/useAppleHealthKit";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
-import { useChat } from "@ai-sdk/react";
 import { fetch as expoFetch } from "expo/fetch";
+import React, { useState, useEffect } from "react";
+import Constants from 'expo-constants';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +16,12 @@ import {
   View,
 } from "react-native";
 
+type Message = {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+};
+
 export default function App() {
 	const {
 		status,
@@ -22,85 +29,126 @@ export default function App() {
 		getStepCountSamples,
     getHeartRateSamples,
 	} = useAppleHealthKit();
-	const {
-		messages,
-		error,
-		handleInputChange,
-		input,
-		handleSubmit,
-		setMessages,
-	} = useChat({
-		fetch: expoFetch as unknown as typeof globalThis.fetch,
-		maxSteps: 10,
-		// api: generateAPIUrl('/api/chat'), # TODO: add this back in and fix
-		api: "http://localhost:8081/api/chat",
-		onError: (error) => console.error(error, "ERROR"),
-		async onToolCall({ toolCall }) {
-			if (toolCall.toolName === "getLocation") {
-				const cities = ["New York", "Los Angeles", "Chicago", "San Francisco"];
-				return cities[Math.floor(Math.random() * cities.length)];
+	
+	// Initialize state for our test API
+	const [messages, setMessages] = useState<Message[]>([]);
+	const [input, setInput] = useState('');
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<Error | null>(null);
+	const [apiStatus, setApiStatus] = useState<string | null>(null);
+
+	// Handle input changes
+	const handleInputChange = (e: any) => {
+		setInput(e.nativeEvent.text);
+	};
+
+	// Handle form submission with streaming Gemini response
+	const handleSubmit = async (e?: any) => {
+		if (e) e.preventDefault?.();
+		if (!input.trim()) return;
+
+		// Generate a unique ID for the message
+		const messageId = Date.now().toString();
+
+		// Add user message to the chat
+		const userMessage: Message = { id: messageId, role: 'user', content: input };
+		setMessages(prev => [...prev, userMessage]);
+		setInput('');
+		setIsLoading(true);
+
+		// Add a placeholder for the assistant's streaming message
+		const assistantId = (Date.now() + 1).toString();
+		setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
+
+		try {
+			const apiUrl = '/api/chat';
+			const response = await fetch(apiUrl, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Accept': 'text/event-stream',
+				},
+				body: JSON.stringify({ message: input }),
+			});
+
+			if (!response.ok || !response.body) {
+				throw new Error(`API responded with status: ${response.status}`);
 			}
 
-			console.log("toolCall", toolCall);
+			// Stream the response
+			const reader = response.body.getReader();
+			const decoder = new TextDecoder();
+			let done = false;
+			let accumulated = '';
 
-			if (toolCall.toolName === "getStepCount") {
-				const args =
-					typeof toolCall.args === "object" && toolCall.args !== null
-						? toolCall.args
-						: {};
-				const { startDate, endDate } = args as {
-					startDate?: string;
-					endDate?: string;
-				};
-				const stepArgs: Record<string, string> = {};
-				if (typeof startDate === "string") {
-					const d = new Date(startDate);
-					if (!Number.isNaN(d.getTime())) stepArgs.startDate = d.toISOString();
+			while (!done) {
+				const { value, done: readerDone } = await reader.read();
+				if (value) {
+					const chunk = decoder.decode(value);
+					accumulated += chunk;
+					setMessages(prev => prev.map(m =>
+						m.id === assistantId ? { ...m, content: accumulated } : m
+					));
 				}
-				if (typeof endDate === "string") {
-					const d = new Date(endDate);
-					if (!Number.isNaN(d.getTime())) stepArgs.endDate = d.toISOString();
-				}
-
-				console.log("stepArgs", stepArgs);
-
-				const stepCount = await getStepCountSamples(stepArgs);
-				console.log("stepCount", stepCount);
-				return stepCount;
+				done = readerDone;
 			}
+		} catch (err) {
+			setError(err instanceof Error ? err : new Error(String(err)));
+			setMessages(prev => prev.map(m =>
+				m.id === assistantId ? { ...m, content: `Error: ${err instanceof Error ? err.message : String(err)}` } : m
+			));
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
-      if (toolCall.toolName === "getHeartRate") {
-        const args =
-          typeof toolCall.args === "object" && toolCall.args !== null
-            ? toolCall.args
-            : {};
-        const { startDate, endDate } = args as {
-          startDate?: string;
-          endDate?: string;
-        };
-        const heartRateArgs: Record<string, string> = {};
-        if (typeof startDate === "string") {
-          const d = new Date(startDate);
-          if (!Number.isNaN(d.getTime())) heartRateArgs.startDate = d.toISOString();
-        }
-        if (typeof endDate === "string") {
-          const d = new Date(endDate);
-          if (!Number.isNaN(d.getTime())) heartRateArgs.endDate = d.toISOString();
-        }
-        console.log("heartRateArgs", heartRateArgs);
-        const heartRates = await getHeartRateSamples(heartRateArgs);
-        console.log("heartRates", heartRates);
-        return heartRates;
-      }
-
-		},
-	});
+	// Check API status on mount
+	useEffect(() => {
+		const checkApiStatus = async () => {
+			try {
+				console.log('Checking API status...');
+				// Use a relative URL instead of hardcoding localhost to avoid CORS issues
+				const apiUrl = '/api/chat';
+				console.log(`Making API status request to: ${apiUrl}`);
+				
+				const response = await fetch(apiUrl, { 
+					method: 'GET',
+					headers: { 
+						'Content-Type': 'application/json',
+						'Accept': 'application/json'
+					},
+					mode: 'cors'
+				});
+				
+				if (response.ok) {
+					const data = await response.json();
+					console.log('API status response:', data);
+					setApiStatus('API is connected');
+				} else {
+					console.error('API status check failed:', response.status);
+					setApiStatus(`API error: ${response.status}`);
+				}
+			} catch (err) {
+				console.error('Error checking API:', err);
+				setApiStatus(`Connection error: ${err instanceof Error ? err.message : String(err)}`);
+			}
+		};
+		
+		checkApiStatus();
+	}, []);
+	
 	const scrollViewRef = useAutoScroll();
 
-	if (error) return <Text>{error.message}</Text>;
-
+	// Display API status in a non-intrusive way
 	return (
 		<SafeAreaView style={styles.safeArea}>
+			{apiStatus && (
+				<View style={styles.apiStatusContainer}>
+					<Text style={styles.apiStatusText}>
+						{apiStatus}
+					</Text>
+				</View>
+			)}
 			<KeyboardAvoidingView
 				style={styles.keyboardAvoiding}
 				behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -151,19 +199,8 @@ export default function App() {
 							style={styles.input}
 							placeholder="Say something..."
 							value={input}
-							onChange={(e) =>
-								handleInputChange({
-									...e,
-									target: {
-										...e.target,
-										value: e.nativeEvent.text,
-									},
-								} as unknown as React.ChangeEvent<HTMLInputElement>)
-							}
-							onSubmitEditing={(e) => {
-								handleSubmit(e);
-								e.preventDefault();
-							}}
+							onChange={handleInputChange}
+							onSubmitEditing={handleSubmit}
 							autoFocus={true}
 							placeholderTextColor="#888"
 							returnKeyType="send"
@@ -192,6 +229,17 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+	apiStatusContainer: {
+		padding: 6,
+		backgroundColor: '#f0f8ff',
+		borderBottomWidth: 1,
+		borderBottomColor: '#e0e0e0',
+		alignItems: 'center',
+	},
+	apiStatusText: {
+		fontSize: 12,
+		color: '#4a6fa5',
+	},
 	safeArea: {
 		flex: 1,
 		backgroundColor: "#f7f7fa",

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Platform } from "react-native";
 import AppleHealthKit, {
   HealthInputOptions,
   HealthKitPermissions,
@@ -24,20 +25,29 @@ export function useAppleHealthKit() {
 
   // Initialize HealthKit and request permissions
   useEffect(() => {
-    setStatus("initializing");
-    AppleHealthKit.initHealthKit(permissions, (err: string) => {
-      if (err) {
-        setError(err);
-        setStatus("error");
-      } else {
-        setStatus("ready");
-      }
-    });
+    if (Platform.OS === 'ios') {
+      setStatus("initializing");
+      AppleHealthKit.initHealthKit(permissions, (err: string) => {
+        if (err) {
+          setError(err);
+          setStatus("error");
+        } else {
+          setStatus("ready");
+        }
+      });
+    } else {
+      // HealthKit is not available on this platform
+      setStatus("ready");
+      setError(null); // Or you could set an informative error message
+    }
   }, []);
 
   // Fetch step count samples
   const getStepCountSamples = useCallback(
     (options: HealthInputOptions): Promise<HealthValue[]> => {
+      if (Platform.OS !== 'ios') {
+        return Promise.resolve([]);
+      }
       return new Promise((resolve, reject) => {
         AppleHealthKit.getDailyStepCountSamples(
           options,
@@ -57,6 +67,9 @@ export function useAppleHealthKit() {
   // Fetch heart rate samples
   const getHeartRateSamples = useCallback(
     (options: HealthInputOptions): Promise<HealthValue[]> => {
+      if (Platform.OS !== 'ios') {
+        return Promise.resolve([]);
+      }
       return new Promise((resolve, reject) => {
         AppleHealthKit.getHeartRateSamples(
           options,
