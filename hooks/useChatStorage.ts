@@ -102,8 +102,11 @@ export const useChatStorage = () => {
           updatedAt: new Date().toISOString(),
         };
 
-        const newConversations = [newConversation, ...conversations];
-        await saveConversations(newConversations);
+        setConversations(prev => {
+          const newConversations = [newConversation, ...prev];
+          AsyncStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(newConversations)).catch(console.error);
+          return newConversations;
+        });
         
         try {
           await AsyncStorage.setItem(STORAGE_KEYS.CURRENT_CONVERSATION_ID, newId);
@@ -115,20 +118,23 @@ export const useChatStorage = () => {
       return;
     }
 
-    const updatedConversations = conversations.map(conv => {
-      if (conv.id === currentConversationId) {
-        return {
-          ...conv,
-          messages,
-          title: messages.length > 0 ? generateTitle(messages) : conv.title,
-          updatedAt: new Date().toISOString(),
-        };
-      }
-      return conv;
+    setConversations(prev => {
+      const updatedConversations = prev.map(conv => {
+        if (conv.id === currentConversationId) {
+          return {
+            ...conv,
+            messages,
+            title: messages.length > 0 ? generateTitle(messages) : conv.title,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return conv;
+      });
+      
+      AsyncStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(updatedConversations)).catch(console.error);
+      return updatedConversations;
     });
-
-    await saveConversations(updatedConversations);
-  }, [currentConversationId, conversations, saveConversations]);
+  }, [currentConversationId]);
 
   // Load a specific conversation
   const loadConversation = useCallback((conversationId: string): Message[] => {

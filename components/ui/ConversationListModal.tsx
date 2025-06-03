@@ -2,13 +2,14 @@ import { IconSymbol } from "@/components/ui/IconSymbol";
 import { ChatConversation } from "@/hooks/useChatStorage";
 import React from "react";
 import {
-    Alert,
-    FlatList,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  FlatList,
+  Modal,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface ConversationListModalProps {
@@ -38,20 +39,20 @@ export const ConversationListModal: React.FC<ConversationListModalProps> = ({
     const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     
     if (diffInDays === 0) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return 'Today';
     } else if (diffInDays === 1) {
       return 'Yesterday';
     } else if (diffInDays < 7) {
-      return `${diffInDays} days ago`;
+      return `${diffInDays}d ago`;
     } else {
-      return date.toLocaleDateString();
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
     }
   };
 
   const handleDeleteConversation = (conversationId: string, title: string) => {
     Alert.alert(
-      "Delete Conversation",
-      `Are you sure you want to delete "${title}"?`,
+      "Delete chat?",
+      "This will delete the conversation.",
       [
         { text: "Cancel", style: "cancel" },
         { 
@@ -65,12 +66,12 @@ export const ConversationListModal: React.FC<ConversationListModalProps> = ({
 
   const handleClearAll = () => {
     Alert.alert(
-      "Clear All Conversations",
-      "Are you sure you want to delete all conversations? This action cannot be undone.",
+      "Clear conversations?",
+      "This will delete all conversations.",
       [
         { text: "Cancel", style: "cancel" },
         { 
-          text: "Clear All", 
+          text: "Clear all", 
           style: "destructive",
           onPress: onClearAll
         }
@@ -93,39 +94,27 @@ export const ConversationListModal: React.FC<ConversationListModalProps> = ({
         }}
       >
         <View style={styles.conversationContent}>
-          <View style={styles.conversationHeader}>
-            <Text 
-              style={[
-                styles.conversationTitle,
-                isCurrentConversation && styles.currentConversationTitle
-              ]}
-              numberOfLines={2}
-            >
-              {item.title}
-            </Text>
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => handleDeleteConversation(item.id, item.title)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <IconSymbol name="trash" size={16} color="#ff3b30" />
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.conversationMeta}>
-            <Text style={styles.messageCount}>
-              {item.messages.length} messages
-            </Text>
-            <Text style={styles.conversationDate}>
-              {formatDate(item.updatedAt)}
-            </Text>
-            {isCurrentConversation && (
-              <View style={styles.currentIndicator}>
-                <Text style={styles.currentIndicatorText}>Current</Text>
-              </View>
-            )}
-          </View>
+          <Text 
+            style={[
+              styles.conversationTitle,
+              isCurrentConversation && styles.currentConversationTitle
+            ]}
+            numberOfLines={1}
+          >
+            {item.title}
+          </Text>
+          <Text style={styles.conversationDate}>
+            {formatDate(item.updatedAt)}
+          </Text>
         </View>
+        
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => handleDeleteConversation(item.id, item.title)}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <IconSymbol name="trash" size={16} color="#8e8e93" />
+        </TouchableOpacity>
       </TouchableOpacity>
     );
   };
@@ -137,59 +126,58 @@ export const ConversationListModal: React.FC<ConversationListModalProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={styles.modalContainer}>
+      <SafeAreaView style={styles.modalContainer}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Conversations</Text>
           <TouchableOpacity
             style={styles.closeButton}
             onPress={onClose}
           >
-            <IconSymbol name="xmark" size={20} color="#007aff" />
+            <IconSymbol name="xmark" size={18} color="#ffffff" />
           </TouchableOpacity>
-        </View>
-
-        <View style={styles.actionButtons}>
+          <Text style={styles.headerTitle}>Chats</Text>
           <TouchableOpacity
-            style={styles.newConversationButton}
+            style={styles.newChatButton}
             onPress={() => {
               onNewConversation();
               onClose();
             }}
           >
-            <IconSymbol name="plus" size={16} color="#fff" />
-            <Text style={styles.newConversationButtonText}>New Chat</Text>
+            <IconSymbol name="square.and.pencil" size={18} color="#ffffff" />
           </TouchableOpacity>
-
-          {conversations.length > 0 && (
-            <TouchableOpacity
-              style={styles.clearAllButton}
-              onPress={handleClearAll}
-            >
-              <IconSymbol name="trash.fill" size={16} color="#ff3b30" />
-              <Text style={styles.clearAllButtonText}>Clear All</Text>
-            </TouchableOpacity>
-          )}
         </View>
 
         {conversations.length === 0 ? (
           <View style={styles.emptyState}>
-            <IconSymbol name="message" size={48} color="#c7c7cc" />
-            <Text style={styles.emptyStateTitle}>No Conversations</Text>
+            <Text style={styles.emptyStateTitle}>No chats yet</Text>
             <Text style={styles.emptyStateSubtitle}>
-              Start a new conversation by tapping "New Chat"
+              Start a conversation to see your chats here
             </Text>
           </View>
         ) : (
-          <FlatList
-            data={conversations}
-            renderItem={renderConversationItem}
-            keyExtractor={(item) => item.id}
-            style={styles.conversationList}
-            contentContainerStyle={styles.conversationListContent}
-            showsVerticalScrollIndicator={false}
-          />
+          <>
+            <FlatList
+              data={conversations}
+              renderItem={renderConversationItem}
+              keyExtractor={(item) => item.id}
+              style={styles.conversationList}
+              contentContainerStyle={styles.conversationListContent}
+              showsVerticalScrollIndicator={false}
+            />
+            
+            {conversations.length > 1 && (
+              <View style={styles.footer}>
+                <TouchableOpacity
+                  style={styles.clearAllButton}
+                  onPress={handleClearAll}
+                >
+                  <IconSymbol name="trash" size={16} color="#ff3b30" />
+                  <Text style={styles.clearAllButtonText}>Clear conversations</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
         )}
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };
@@ -197,152 +185,109 @@ export const ConversationListModal: React.FC<ConversationListModalProps> = ({
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: "#f7f7fa",
+    backgroundColor: "#1f1f1f",
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#333333',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#222",
+    fontWeight: '600',
+    color: '#ffffff',
   },
   closeButton: {
-    padding: 8,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  actionButtons: {
-    flexDirection: "row",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 12,
-  },
-  newConversationButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#007aff",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  newConversationButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  clearAllButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "#ff3b30",
-  },
-  clearAllButtonText: {
-    color: "#ff3b30",
-    fontWeight: "600",
-    fontSize: 16,
+  newChatButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   conversationList: {
     flex: 1,
   },
   conversationListContent: {
-    paddingHorizontal: 20,
+    paddingTop: 8,
   },
   conversationItem: {
-    backgroundColor: "#fff",
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginVertical: 2,
     borderRadius: 12,
-    marginBottom: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   currentConversationItem: {
-    backgroundColor: "#e3f2fd",
-    borderWidth: 1,
-    borderColor: "#007aff",
+    backgroundColor: '#2f2f2f',
   },
   conversationContent: {
     flex: 1,
-  },
-  conversationHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 8,
-  },
-  conversationTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#222",
     marginRight: 12,
   },
+  conversationTitle: {
+    fontSize: 16,
+    color: '#ffffff',
+    marginBottom: 2,
+  },
   currentConversationTitle: {
-    color: "#007aff",
-  },
-  deleteButton: {
-    padding: 4,
-  },
-  conversationMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  messageCount: {
-    fontSize: 12,
-    color: "#888",
+    fontWeight: '500',
   },
   conversationDate: {
-    fontSize: 12,
-    color: "#888",
+    fontSize: 13,
+    color: '#8e8e93',
   },
-  currentIndicator: {
-    backgroundColor: "#007aff",
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginLeft: "auto",
-  },
-  currentIndicatorText: {
-    fontSize: 10,
-    color: "#fff",
-    fontWeight: "600",
+  deleteButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyState: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 40,
   },
   emptyStateTitle: {
     fontSize: 20,
-    fontWeight: "600",
-    color: "#222",
-    marginTop: 16,
+    fontWeight: '600',
+    color: '#ffffff',
     marginBottom: 8,
+    textAlign: 'center',
   },
   emptyStateSubtitle: {
     fontSize: 16,
-    color: "#888",
-    textAlign: "center",
+    color: '#8e8e93',
+    textAlign: 'center',
     lineHeight: 22,
+  },
+  footer: {
+    borderTopWidth: 0.5,
+    borderTopColor: '#333333',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  clearAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  clearAllButtonText: {
+    fontSize: 16,
+    color: '#ff3b30',
+    marginLeft: 8,
   },
 });
 
