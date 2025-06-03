@@ -102,18 +102,22 @@ export async function POST(req: Request) {
     // Parse the incoming request using req.json()
     let prompt = '';
     try {
-      const data = await req.json();
-      console.log('Received request data:', data);
+      const { messages } = await req.json();
+      // The useChat hook sends the whole conversation history.
+      // The last message is the user's current input.
+      const userQuery = messages && messages.length > 0 ? messages[messages.length - 1].content : '';
 
-      if (!data || typeof data.message !== 'string') {
-        console.error('Invalid request: message is missing or not a string.', data);
-        return new Response(JSON.stringify({ error: 'Message must be a string and is required.' }), {
+      if (!userQuery) {
+        return new Response(JSON.stringify({ error: 'No message found in request' }), {
           status: 400,
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+          },
         });
       }
-      
-      prompt = data.message;
+      prompt = userQuery;
+      console.log('Received request data:', { messages });
+
       // Limit prompt length for safety
       if (prompt.length > 1000) {
         prompt = prompt.substring(0, 1000);
@@ -127,94 +131,58 @@ export async function POST(req: Request) {
       });
     }
     
-    if (!prompt) {
-      console.error('No prompt provided');
-      return new Response(JSON.stringify({ error: 'No prompt/message provided' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    // Call RAG API
+    const ragApiUrl = 'http://127.0.0.1:8000/query'; // Ensure your RAG API is running here
+    console.log(`Attempting to call RAG API at ${ragApiUrl} with query: "${prompt}"`);
 
-    // Check if API key is loaded
-    if (!apiKey) {
-      console.error('Gemini API key is not loaded from constants.');
-      // Return a 503 Service Unavailable error as the service is not configured
-      return new Response(JSON.stringify({ error: 'API key not configured. Service unavailable.' }), {
-        status: 503, 
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Set the API key in process.env for the Vercel AI SDK to pick up.
-    // This should be done early, before the SDK model provider is invoked.
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY = apiKey;
-    console.log('GOOGLE_GENERATIVE_AI_API_KEY set in process.env');
-    console.log('Using API key (from constants):', apiKey.substring(0, 4) + '...' + apiKey.substring(apiKey.length - 4));
-
-    console.log('Sending prompt to Gemini:', prompt);
-    
     try {
-      // Call Gemini API directly with the correct parameters.
-      // The google() helper expects the model ID. The API key is picked from process.env.
-      const result = await generateText({
-        model: google('gemini-2.0-flash'), // Use a valid model ID string
-        prompt
+      const ragApiResponse = await fetch(ragApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: prompt, top_k: 3 }), // top_k can be made configurable
       });
+
+      const responseHeaders = corsHeaders(req); // Get base CORS headers
+      responseHeaders.set('Content-Type', 'application/json'); // Set content type for all responses from here
+
+      if (!ragApiResponse.ok) {
+        const errorBodyText = await ragApiResponse.text(); 
+        console.error(`RAG API call failed: ${ragApiResponse.status} ${ragApiResponse.statusText}. Body: ${errorBodyText}`);
+        let errorDetail = `RAG API error: ${ragApiResponse.status} ${ragApiResponse.statusText}. ${errorBodyText}`;
+        try {
+            const errorJson = JSON.parse(errorBodyText);
+            if (errorJson.detail) errorDetail = `RAG API error: ${errorJson.detail}`;
+            else if (errorJson.error) errorDetail = `RAG API error: ${errorJson.error}`;
+        } catch (e) { /* Not a JSON error body, stick with text */ }
+
+        return new Response(JSON.stringify({ error: errorDetail }), {
+          status: ragApiResponse.status, 
+          headers: responseHeaders,
+        });
+      }
+
+      const ragData = await ragApiResponse.json();
+      console.log('Received successful response from RAG API:', ragData);
+
+      const finalAnswer = ragData.answer;
+      const retrievedChunks = ragData.retrieved_chunks; 
+
+      console.log('Responding to POST with RAG API answer. Headers:', Object.fromEntries(responseHeaders.entries()));
       
-      console.log('Received response from Gemini');
-      console.log('Result structure:', Object.keys(result).join(', '));
-
-      // Extract text from the generateText result
-      console.log('Available properties in generateText result:', Object.keys(result));
-      
-      let text: string = '';
-      const anyResult = result as any; // Use 'as any' for now, or type with GenerateTextResult
-
-      if (typeof anyResult.text === 'string') {
-        text = anyResult.text;
-        console.log('Successfully extracted string from generateText result.text.');
-      } else {
-        console.error(`generateText result.text is not a string. Type: ${typeof anyResult.text}, Value:`, anyResult.text);
-        console.error('Full generateText result object:', JSON.stringify(result, null, 2));
-        text = `Error: AI response format unexpected after using generateText. Prompt: ${prompt}`;
-      }
-
-      // Additional logging for other potentially useful fields from GenerateTextResult
-      if (anyResult.finishReason) {
-        console.log('Finish Reason:', anyResult.finishReason);
-      }
-      if (anyResult.usage) {
-        console.log('Token Usage:', anyResult.usage);
-      }
-      
-      console.log('Text type:', typeof text);
-      if (typeof text === 'string') {
-        console.log('Received text from Gemini:', text.length > 100 ? text.substring(0, 100) + '...' : text);
-      } else {
-        console.log('Text is not a string:', text);
-        text = String(text); // Convert to string for safety
-      }
-
-      // Set up CORS headers
-      const headers = corsHeaders(req);
-      headers.set('Content-Type', 'application/json');
-
-      // Return the text as a simple JSON response
-      return new Response(JSON.stringify({ response: text }), {
+      return new Response(JSON.stringify({ text: finalAnswer, retrieved_chunks: retrievedChunks }), {
         status: 200,
-        headers,
+        headers: responseHeaders,
       });
-    } catch (geminiError) {
-      console.error('Error calling Gemini API:', geminiError);
-      const headers = corsHeaders(req);
-      headers.set('Content-Type', 'application/json');
-      return new Response(JSON.stringify({
-        error: 'Gemini API error',
-        message: geminiError instanceof Error ? geminiError.message : String(geminiError),
-        timestamp: new Date().toISOString(),
-      }), {
-        status: 500,
-        headers,
+
+    } catch (ragCallError: any) {
+      console.error('Network or other error calling RAG API:', ragCallError);
+      const responseHeaders = corsHeaders(req);
+      responseHeaders.set('Content-Type', 'application/json');
+      return new Response(JSON.stringify({ error: `Failed to connect to RAG API: ${ragCallError.message}` }), {
+        status: 502, // Bad Gateway, as this service depends on the RAG API
+        headers: responseHeaders,
       });
     }
   } catch (error: any) { // Use 'any' for broader error inspection

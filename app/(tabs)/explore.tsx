@@ -66,31 +66,49 @@ export default function App() {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'Accept': 'text/event-stream',
+					'Accept': 'application/json',
 				},
 				body: JSON.stringify({ message: input }),
 			});
 
-			if (!response.ok || !response.body) {
-				throw new Error(`API responded with status: ${response.status}`);
+			if (!response.ok) {
+				let errorText = response.statusText || "Unknown error";
+				try {
+					// Attempt to parse the error response as JSON, as FastAPI/our API often returns JSON errors
+					const errorBody = await response.json();
+					// Use 'detail' (FastAPI standard), 'error' (common), or 'message', then stringify as fallback
+					errorText = errorBody.detail || errorBody.error || errorBody.message || JSON.stringify(errorBody);
+				} catch (e) {
+					// If parsing as JSON fails, try to read as plain text
+					try {
+						const plainErrorText = await response.text();
+						if (plainErrorText) errorText = plainErrorText;
+					} catch (e2) {
+						// If reading as text also fails, stick with statusText or generic message
+					}
+				}
+				throw new Error(`API Error (${response.status}): ${errorText}`);
 			}
 
-			// Stream the response
-			const reader = response.body.getReader();
-			const decoder = new TextDecoder();
-			let done = false;
-			let accumulated = '';
+			// Response is now JSON, not a stream
+			const responseData = await response.json();
 
-			while (!done) {
-				const { value, done: readerDone } = await reader.read();
-				if (value) {
-					const chunk = decoder.decode(value);
-					accumulated += chunk;
-					setMessages(prev => prev.map(m =>
-						m.id === assistantId ? { ...m, content: accumulated } : m
-					));
+			// Ensure responseData has the expected structure (text for the answer)
+			if (responseData && typeof responseData.text === 'string') {
+				setMessages(prev => prev.map(m =>
+					m.id === assistantId ? { ...m, content: responseData.text } : m
+				));
+				// TODO: Optionally, handle/store responseData.retrieved_chunks here
+				// For example, you could add them to the message object:
+				// setMessages(prev => prev.map(m =>
+				//   m.id === assistantId ? { ...m, content: responseData.text, chunks: responseData.retrieved_chunks } : m
+				// ));
+			} else {
+				// If the API returns an error JSON with a message/error property (e.g. from chat+api.ts or RAG API itself)
+				if (responseData && (responseData.message || responseData.error || responseData.detail)) {
+					throw new Error(`API Error: ${responseData.message || responseData.error || responseData.detail}`);
 				}
-				done = readerDone;
+				throw new Error('Unexpected response format from API or missing text field.');
 			}
 		} catch (err) {
 			setError(err instanceof Error ? err : new Error(String(err)));
