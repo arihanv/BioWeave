@@ -38,7 +38,7 @@ export default function TabLayout() {
         },
       }}>
       <Tabs.Screen
-        name="explore"
+        name="index"
         options={{
           title: 'Chat',
           tabBarIcon: ({ color }) => <IconSymbol size={20} name="message.fill" color={color} />,

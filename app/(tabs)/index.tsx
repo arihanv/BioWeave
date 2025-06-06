@@ -89,17 +89,6 @@ export default function App() {
 		args: any;
 	}[]>([]);
 	
-	// Timer for updating tool call durations
-	React.useEffect(() => {
-		if (activeToolCalls.length > 0) {
-			const interval = setInterval(() => {
-				// Force re-render to update durations - use a stable update
-				setActiveToolCalls(prev => prev.map(call => ({ ...call })));
-			}, 1000);
-			
-			return () => clearInterval(interval);
-		}
-	}, [activeToolCalls.length]);
 	
 	const [containerHeight, setContainerHeight] = React.useState(0);
 	const [contentHeight, setContentHeight] = React.useState(0);
@@ -227,26 +216,7 @@ export default function App() {
 			setShowScrollButton(hasOverflow && !isAtBottom && renderableMessages.length > 0);
 		}
 	}, [lastScrollData, renderableMessages.length, contentHeight, containerHeight]);
-
-	// Auto-scroll for new messages
-	React.useEffect(() => {
-		if (messages.length > 0) {
-			const lastMessage = messages[messages.length - 1];
-			
-			// Check if we have a new message
-			if (prevLastMessageRef.current !== lastMessage.id) {
-				prevLastMessageRef.current = lastMessage.id;
-				
-				// Only auto-scroll if we're already near the bottom
-				if (isNearBottom.current) {
-					// Small delay to ensure the message is rendered
-					setTimeout(() => {
-						scrollToEnd();
-					}, 100);
-				}
-			}
-		}
-	}, [messages, scrollToEnd]);
+	
 
 	// Handle layout animations
 	React.useEffect(() => {

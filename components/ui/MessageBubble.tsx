@@ -4,6 +4,7 @@ import {
   Text,
   View
 } from 'react-native';
+import Markdown from 'react-native-markdown-display';
 import { ToolCallIndicator } from './ToolCallIndicator';
 
 interface MessageBubbleProps {
@@ -53,13 +54,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           styles.messageContainer,
           isUser ? styles.userMessage : styles.assistantMessage,
         ]}>
-          <Text style={[
-            styles.messageText,
-            isUser ? styles.userMessageText : styles.assistantMessageText
-          ]}>
-            {message.content}
-          </Text>
+          {isUser ? (
+            <Text style={[
+              styles.messageText,
+              styles.userMessageText
+            ]}>
+              {message.content}
+            </Text>
+          ) : (
+            <Markdown style={markdownStyles}>{message.content}</Markdown>
+          )}
           
+          {/* <Text>{message.content}</Text> */}
           {isTyping && (
             <View style={styles.typingIndicator}>
               <View style={[styles.dot, styles.dot1]} />
@@ -73,6 +79,136 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   );
 };
 
+const markdownStyles = {
+  body: {
+    color: '#ffffff',
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  paragraph: {
+    color: '#ffffff',
+    fontSize: 16,
+    lineHeight: 22,
+    marginVertical: 0,
+  },
+  text: {
+    color: '#ffffff',
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  strong: {
+    color: '#ffffff',
+    fontWeight: 'bold' as const,
+  },
+  em: {
+    color: '#ffffff',
+    fontStyle: 'italic' as const,
+  },
+  code_inline: {
+    backgroundColor: '#2a2a2a',
+    color: '#e6e6e6',
+    fontFamily: 'monospace',
+    fontSize: 14,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#404040',
+  },
+  code_block: {
+    backgroundColor: '#2a2a2a',
+    color: '#e6e6e6',
+    fontFamily: 'monospace',
+    fontSize: 14,
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: '#404040',
+  },
+  blockquote: {
+    backgroundColor: '#2a2a2a',
+    borderLeftWidth: 4,
+    borderLeftColor: '#4A9EFF',
+    paddingLeft: 12,
+    paddingVertical: 8,
+    marginVertical: 8,
+    borderRadius: 4,
+  },
+  heading1: {
+    color: '#ffffff',
+    fontSize: 24,
+    fontWeight: 'bold' as const,
+    marginVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#404040',
+    paddingBottom: 4,
+  },
+  heading2: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: 'bold' as const,
+    marginVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#404040',
+    paddingBottom: 4,
+  },
+  heading3: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold' as const,
+    marginVertical: 4,
+  },
+  list_item: {
+    color: '#ffffff',
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  bullet_list: {
+    marginVertical: 4,
+  },
+  ordered_list: {
+    marginVertical: 4,
+  },
+  link: {
+    color: '#4A9EFF',
+    textDecorationLine: 'underline' as const,
+  },
+  hr: {
+    backgroundColor: '#404040',
+    height: 1,
+    marginTop: 8,
+  },
+  table: {
+    borderWidth: 1,
+    borderColor: '#404040',
+    borderRadius: 4,
+    marginVertical: 8,
+  },
+  th: {
+    backgroundColor: '#2a2a2a',
+    color: '#ffffff',
+    fontWeight: 'bold' as const,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#404040',
+  },
+  td: {
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#404040',
+    color: '#ffffff',
+  },
+  strikethrough: {
+    color: '#999999',
+    textDecorationLine: 'line-through' as const,
+  },
+  image: {
+    borderRadius: 8,
+    marginVertical: 8,
+  },
+};
+
 const styles = StyleSheet.create({
   container: {
     marginVertical: 4,
@@ -83,9 +219,6 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     borderRadius: 12,
-    // paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginVertical: 2,
   },
   userMessage: {
     backgroundColor: '#2f2f2f',
@@ -93,6 +226,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: '#404040',
+    paddingVertical: 10,
   },
   assistantMessage: {
     alignSelf: 'stretch',
@@ -103,9 +237,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   userMessageText: {
-    color: '#ffffff',
-  },
-  assistantMessageText: {
     color: '#ffffff',
   },
   typingIndicator: {
