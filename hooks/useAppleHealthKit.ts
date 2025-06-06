@@ -3,6 +3,7 @@ import AppleHealthKit, {
   HealthInputOptions,
   HealthKitPermissions,
   HealthValue,
+  HealthActivitySummary,
 } from "react-native-health";
 
 export type HealthKitStatus = "uninitialized" | "initializing" | "ready" | "error";
@@ -13,6 +14,8 @@ const permissions: HealthKitPermissions = {
     read: [
       AppleHealthKit.Constants.Permissions.StepCount,
       AppleHealthKit.Constants.Permissions.HeartRate,
+      AppleHealthKit.Constants.Permissions.ActivitySummary,
+      AppleHealthKit.Constants.Permissions.ActiveEnergyBurned
     ],
     write: [],
   },
@@ -73,10 +76,43 @@ export function useAppleHealthKit() {
     []
   );
 
+  const getActivitySummary = useCallback(
+    (options: HealthInputOptions): Promise<HealthActivitySummary[]> => {
+      return new Promise((resolve, reject) => {
+        AppleHealthKit.getActivitySummary(options, (err: string, results: HealthActivitySummary[]) => {
+          console.log("results", results);
+          if (err) {
+            reject(err);
+          } else {
+            resolve(results);
+          }
+        });
+      });
+    },
+    []
+  );
+
+  const getCaloriesBurned = useCallback(
+    (options: HealthInputOptions): Promise<HealthValue[]> => {
+      return new Promise((resolve, reject) => {
+        AppleHealthKit.getActiveEnergyBurned(options, (err: string, results: HealthValue[]) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(results);
+          }
+        });
+      });
+    },
+    []
+  );
+
   return {
     status,
     error,
     getStepCountSamples,
-    getHeartRateSamples,
+    getHeartRateSamples,  
+    getActivitySummary,
+    getCaloriesBurned,
   };
 }

@@ -63,6 +63,8 @@ export default function App() {
 		error: healthKitError,
 		getStepCountSamples,
 		getHeartRateSamples,
+		getActivitySummary,
+		getCaloriesBurned,
 	} = useAppleHealthKit();
 
 	// Chat storage
@@ -147,6 +149,29 @@ export default function App() {
 					console.log("heartRates", heartRates);
 					return heartRates;
 				}
+
+				if (toolCall.toolName === "getActivitySummary") {
+					console.log("activitySummaryArgs", periodArgs);
+					const activitySummary = await getActivitySummary(periodArgs);
+					console.log("activitySummary", activitySummary);
+					return activitySummary;
+				}
+
+				if (toolCall.toolName === "getCaloriesBurned") {
+					console.log("caloriesBurnedArgs", periodArgs);
+					const caloriesBurned = await getCaloriesBurned(periodArgs);
+					console.log("caloriesBurned", caloriesBurned);
+					return caloriesBurned;
+				}
+
+				// Return error message for unknown tool calls
+				return `Unknown tool: ${toolCall.toolName}`;
+			} catch (error) {
+				console.error(`Error in ${toolCall.toolName}:`, error);
+				// Always return a result, even if it's an error message
+				return {
+					error: `Failed to execute ${toolCall.toolName}: ${error instanceof Error ? error.message : String(error)}`
+				};
 			} finally {
 				// Remove the tool call from active list when done
 				setActiveToolCalls(prev => prev.filter(call => 
@@ -169,7 +194,6 @@ export default function App() {
 	// Create refs for stable function access
 	const saveCurrentConversationRef = React.useRef(saveCurrentConversation);
 	const loadConversationRef = React.useRef(loadConversation);
-	const setMessagesRef = React.useRef(setMessages);
 	
 	// Update refs when functions change
 	React.useEffect(() => {
@@ -180,9 +204,8 @@ export default function App() {
 		loadConversationRef.current = loadConversation;
 	}, [loadConversation]);
 	
-	React.useEffect(() => {
-		setMessagesRef.current = setMessages;
-	}, [setMessages]);
+	// Remove this useEffect to prevent infinite loops
+	// setMessagesRef.current will be updated directly where needed
 
 	// Filter messages to only show user, assistant, and system messages
 	const renderableMessages = React.useMemo(() => 
@@ -196,8 +219,10 @@ export default function App() {
 		setLastScrollData(scrollData);
 	}, []);
 
-	// Update scroll button visibility when data changes
+	// // Update scroll button visibility when data changes
 	React.useEffect(() => {
+		let shouldShowButton = false;
+		
 		// If we have scroll data from an actual scroll event
 		if (lastScrollData) {
 			const { contentOffset, contentSize, layoutMeasurement } = lastScrollData;
@@ -205,7 +230,7 @@ export default function App() {
 			const hasScrollableContent = contentSize.height > layoutMeasurement.height;
 			
 			isNearBottom.current = isAtBottom;
-			setShowScrollButton(hasScrollableContent && !isAtBottom && renderableMessages.length > 0);
+			shouldShowButton = hasScrollableContent && !isAtBottom && renderableMessages.length > 0;
 		} 
 		// If we have container and content height but no scroll data yet
 		else if (contentHeight > 0 && containerHeight > 0) {
@@ -213,8 +238,11 @@ export default function App() {
 			const isAtBottom = containerHeight >= contentHeight - 50;
 			
 			isNearBottom.current = isAtBottom;
-			setShowScrollButton(hasOverflow && !isAtBottom && renderableMessages.length > 0);
+			shouldShowButton = hasOverflow && !isAtBottom && renderableMessages.length > 0;
 		}
+		
+		// Only update if the value actually changed
+		setShowScrollButton(prev => prev !== shouldShowButton ? shouldShowButton : prev);
 	}, [lastScrollData, renderableMessages.length, contentHeight, containerHeight]);
 	
 
@@ -237,7 +265,7 @@ export default function App() {
 		if (currentConversationId && !isLoadingConversation) {
 			setIsLoadingConversation(true);
 			const conversationMessages = loadConversationRef.current(currentConversationId);
-			setMessagesRef.current(conversationMessages);
+			setMessages(conversationMessages);
 			setIsLoadingConversation(false);
 		}
 	}, [currentConversationId]);
@@ -301,10 +329,11 @@ export default function App() {
 							onScroll={handleScroll}
 							scrollEventThrottle={16}
 							onLayout={(event) => {
-								setContainerHeight(event.nativeEvent.layout.height);
+								const newHeight = event.nativeEvent.layout.height;
+								setContainerHeight(prev => prev !== newHeight ? newHeight : prev);
 							}}
 							onContentSizeChange={(width, height) => {
-								setContentHeight(height);
+								setContentHeight(prev => prev !== height ? height : prev);
 							}}
 							showsVerticalScrollIndicator={false}
 							keyboardShouldPersistTaps="handled"

@@ -15,6 +15,9 @@ export async function POST(req: Request) {
     as we want to have this context before providing feedback for quick responses. 
     You are capable of writing markdown, which is supported by react-native-markdown-display, 
     so please write in markdown naturally without backticks around it.
+
+    Answer your questions in markdown as much as possible as we want to display information back in a very clean manner.
+    Especially for listed information, please use markdown tables.
     
     example:
     - I'm feeling a bit tired today.
@@ -23,12 +26,6 @@ export async function POST(req: Request) {
     messages,
     abortSignal: req.signal,
     tools: {
-      // client-side tool that is automatically executed on the client:
-      getLocation: {
-        description:
-          'Get the user location.',
-        parameters: z.object({}),
-      },
       getStepCount: {
         description: 'Get the user\'s step count.',
         parameters: z.object({
@@ -38,6 +35,20 @@ export async function POST(req: Request) {
       },
       getHeartRate: {
         description: 'Get the user\'s heart rate.',
+        parameters: z.object({
+            startDate: z.string().optional().default(new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+            endDate: z.string().optional().default(new Date().toISOString()),
+        }),
+      },
+      getActivitySummary: {
+        description: 'Get the user\'s activity summary for the given date range.',
+        parameters: z.object({
+            startDate: z.string().optional().default(new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+            endDate: z.string().optional().default(new Date().toISOString()),
+        }),
+      },
+      getCaloriesBurned: {
+        description: 'Get the user\'s calories burned for the given date range.',
         parameters: z.object({
             startDate: z.string().optional().default(new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
             endDate: z.string().optional().default(new Date().toISOString()),
