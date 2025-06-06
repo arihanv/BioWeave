@@ -1,0 +1,89 @@
+2025-06-05 20:36:57,741 - INFO - Loading sentence transformer model: all-MiniLM-L6-v2
+2025-06-05 20:36:57,766 - INFO - Use pytorch device_name: cpu
+2025-06-05 20:36:57,767 - INFO - Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+2025-06-05 20:37:01,897 - INFO - Model loaded successfully
+2025-06-05 20:37:01,898 - INFO - Loading existing chunks from text_chunks.pkl
+2025-06-05 20:37:01,899 - INFO - Loaded 40 existing chunks
+2025-06-05 20:37:01,899 - INFO - Loading existing FAISS index from faiss_index.idx
+2025-06-05 20:37:01,906 - INFO - FAISS index loaded with 40 vectors
+2025-06-05 20:37:01,907 - INFO - Found 2 files in Cardiovascular category
+2025-06-05 20:37:01,908 - INFO - Processing file Preventing Heart Disease _ Heart Disease _ CDC.pdf...
+2025-06-05 20:37:01,908 - INFO - Processing file: C:\Users\madhu\Downloads\BioWeave RAG Docs-20250606T033155Z-1-001\BioWeave RAG Docs\Cardiovascular\Preventing Heart Disease _ Heart Disease _ CDC.pdf
+2025-06-05 20:37:01,909 - INFO - Opening PDF: C:\Users\madhu\Downloads\BioWeave RAG Docs-20250606T033155Z-1-001\BioWeave RAG Docs\Cardiovascular\Preventing Heart Disease _ Heart Disease _ CDC.pdf
+2025-06-05 20:37:01,913 - INFO - PDF has 2 pages
+2025-06-05 20:37:01,976 - INFO - Extracted text from page 1 (1980 characters)
+2025-06-05 20:37:02,046 - INFO - Extracted text from page 2 (3056 characters)
+2025-06-05 20:37:02,047 - INFO - Finished PDF extraction, got 5040 characters
+2025-06-05 20:37:02,047 - INFO - Chunking text...
+2025-06-05 20:37:02,047 - INFO - Created 6 chunks
+2025-06-05 20:37:02,048 - INFO - Processed 6 chunks from C:\Users\madhu\Downloads\BioWeave RAG Docs-20250606T033155Z-1-001\BioWeave RAG Docs\Cardiovascular\Preventing Heart Disease _ Heart Disease _ CDC.pdf
+2025-06-05 20:37:02,048 - INFO - Added 6 chunks from Preventing Heart Disease _ Heart Disease _ CDC.pdf
+2025-06-05 20:37:02,049 - INFO - Processing file zpes213.pdf...
+2025-06-05 20:37:02,049 - INFO - Processing file: C:\Users\madhu\Downloads\BioWeave RAG Docs-20250606T033155Z-1-001\BioWeave RAG Docs\Cardiovascular\zpes213.pdf
+2025-06-05 20:37:02,049 - INFO - Opening PDF: C:\Users\madhu\Downloads\BioWeave RAG Docs-20250606T033155Z-1-001\BioWeave RAG Docs\Cardiovascular\zpes213.pdf
+2025-06-05 20:37:02,077 - INFO - PDF has 44 pages
+2025-06-05 20:37:02,099 - INFO - Extracted text from page 1 (4978 characters)
+2025-06-05 20:37:02,120 - INFO - Extracted text from page 2 (4951 characters)
+2025-06-05 20:37:02,139 - INFO - Extracted text from page 3 (4863 characters)
+2025-06-05 20:37:02,160 - INFO - Extracted text from page 4 (5285 characters)
+2025-06-05 20:37:02,181 - INFO - Extracted text from page 5 (5067 characters)
+2025-06-05 20:37:02,203 - INFO - Extracted text from page 6 (5230 characters)
+2025-06-05 20:37:02,231 - INFO - Extracted text from page 7 (5842 characters)
+2025-06-05 20:37:02,253 - INFO - Extracted text from page 8 (4964 characters)
+2025-06-05 20:37:02,277 - INFO - Extracted text from page 9 (5046 characters)
+2025-06-05 20:37:02,298 - INFO - Extracted text from page 10 (5072 characters)
+2025-06-05 20:37:02,312 - INFO - Extracted text from page 11 (2864 characters)
+2025-06-05 20:37:02,333 - INFO - Extracted text from page 12 (5368 characters)
+2025-06-05 20:37:02,351 - INFO - Extracted text from page 13 (3727 characters)
+2025-06-05 20:37:02,370 - INFO - Extracted text from page 14 (5329 characters)
+2025-06-05 20:37:02,390 - INFO - Extracted text from page 15 (4793 characters)
+2025-06-05 20:37:02,406 - INFO - Extracted text from page 16 (4148 characters)
+2025-06-05 20:37:02,596 - INFO - Extracted text from page 17 (5515 characters)
+2025-06-05 20:37:02,616 - INFO - Extracted text from page 18 (4983 characters)
+2025-06-05 20:37:02,643 - INFO - Extracted text from page 19 (5800 characters)
+2025-06-05 20:37:02,674 - INFO - Extracted text from page 20 (2372 characters)
+2025-06-05 20:37:02,690 - INFO - Extracted text from page 21 (2545 characters)
+2025-06-05 20:37:02,725 - INFO - Extracted text from page 22 (5600 characters)
+2025-06-05 20:37:02,742 - INFO - Extracted text from page 23 (3228 characters)
+2025-06-05 20:37:02,761 - INFO - Extracted text from page 24 (3832 characters)
+2025-06-05 20:37:02,785 - INFO - Extracted text from page 25 (5629 characters)
+2025-06-05 20:37:02,807 - INFO - Extracted text from page 26 (5027 characters)
+2025-06-05 20:37:02,828 - INFO - Extracted text from page 27 (4327 characters)
+2025-06-05 20:37:02,849 - INFO - Extracted text from page 28 (4637 characters)
+2025-06-05 20:37:02,883 - INFO - Extracted text from page 29 (4973 characters)
+2025-06-05 20:37:02,913 - INFO - Extracted text from page 30 (5101 characters)
+2025-06-05 20:37:02,935 - INFO - Extracted text from page 31 (5426 characters)
+2025-06-05 20:37:02,956 - INFO - Extracted text from page 32 (5011 characters)
+2025-06-05 20:37:02,972 - INFO - Extracted text from page 33 (4287 characters)
+2025-06-05 20:37:02,991 - INFO - Extracted text from page 34 (3851 characters)
+2025-06-05 20:37:03,011 - INFO - Extracted text from page 35 (4729 characters)
+2025-06-05 20:37:03,033 - INFO - Extracted text from page 36 (5899 characters)
+2025-06-05 20:37:03,054 - INFO - Extracted text from page 37 (4845 characters)
+2025-06-05 20:37:03,076 - INFO - Extracted text from page 38 (5827 characters)
+2025-06-05 20:37:03,095 - INFO - Extracted text from page 39 (4926 characters)
+2025-06-05 20:37:03,116 - INFO - Extracted text from page 40 (5188 characters)
+2025-06-05 20:37:03,138 - INFO - Extracted text from page 41 (4203 characters)
+2025-06-05 20:37:03,163 - INFO - Extracted text from page 42 (6239 characters)
+2025-06-05 20:37:03,184 - INFO - Extracted text from page 43 (4838 characters)
+2025-06-05 20:37:03,208 - INFO - Extracted text from page 44 (6246 characters)
+2025-06-05 20:37:03,208 - INFO - Finished PDF extraction, got 212699 characters
+2025-06-05 20:37:03,209 - INFO - Chunking text...
+2025-06-05 20:37:03,209 - INFO - Created 237 chunks
+2025-06-05 20:37:03,210 - INFO - Processed 237 chunks from C:\Users\madhu\Downloads\BioWeave RAG Docs-20250606T033155Z-1-001\BioWeave RAG Docs\Cardiovascular\zpes213.pdf
+2025-06-05 20:37:03,210 - INFO - Added 237 chunks from zpes213.pdf
+2025-06-05 20:37:03,211 - INFO - Generating embeddings for 243 new chunks...
+2025-06-05 20:37:03,211 - INFO - Embedding batch 1/8 (32 chunks)
+2025-06-05 20:37:06,324 - INFO - Embedding batch 2/8 (32 chunks)
+2025-06-05 20:37:09,120 - INFO - Embedding batch 3/8 (32 chunks)
+2025-06-05 20:37:11,751 - INFO - Embedding batch 4/8 (32 chunks)
+2025-06-05 20:37:14,005 - INFO - Embedding batch 5/8 (32 chunks)
+2025-06-05 20:37:16,297 - INFO - Embedding batch 6/8 (32 chunks)
+2025-06-05 20:37:18,559 - INFO - Embedding batch 7/8 (32 chunks)
+2025-06-05 20:37:20,656 - INFO - Embedding batch 8/8 (19 chunks)
+2025-06-05 20:37:22,432 - INFO - Adding 243 vectors to FAISS index
+2025-06-05 20:37:22,436 - INFO - Added 243 chunks to the system
+2025-06-05 20:37:22,437 - INFO - Total chunks: 283 (was 40)
+2025-06-05 20:37:22,438 - INFO - Saving 283 chunks to text_chunks.pkl
+2025-06-05 20:37:22,443 - INFO - Saving FAISS index with 283 vectors to faiss_index.idx
+2025-06-05 20:37:22,448 - INFO - Data saved successfully
+2025-06-05 20:37:22,449 - INFO - Finished processing Cardiovascular category
