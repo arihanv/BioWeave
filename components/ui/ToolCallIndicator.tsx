@@ -1,9 +1,9 @@
 import React from 'react';
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 
 interface ToolCallIndicatorProps {
@@ -27,6 +27,9 @@ export const ToolCallIndicator: React.FC<ToolCallIndicatorProps> = ({
         return { icon: '❤️', label: 'Heart rate' };
       case 'getLocation':
         return { icon: '📍', label: 'Location' };
+      case 'rag_query':
+      case 'makeRAGQuery':
+        return { icon: '🔍', label: 'Searching' };
       default:
         return { icon: '🧠', label: 'Thinking' };
     }
@@ -36,6 +39,26 @@ export const ToolCallIndicator: React.FC<ToolCallIndicatorProps> = ({
     if (!args || Object.keys(args).length === 0) return '';
     
     const argStrings: string[] = [];
+    
+    // // Handle RAG query arguments
+    // if (args.query || args.queryText) {
+    //   const query = args.query || args.queryText;
+    //   const truncatedQuery = query.length > 40 ? query.substring(0, 37) + '...' : query;
+    //   argStrings.push(`"${truncatedQuery}"`);
+    // }
+    
+    // // Handle RAG results
+    // if (args.results && Array.isArray(args.results)) {
+    //   const sources = args.results.map((r: any) => {
+    //     const source = r.source ? r.source.replace('.pdf', '') : 'unknown';
+    //     const page = r.page_number ? `p${r.page_number}` : '';
+    //     return page ? `${source}(${page})` : source;
+    //   });
+    //   const uniqueSources = [...new Set(sources)];
+    //   const sourceText = uniqueSources.slice(0, 3).join(', ');
+    //   const moreText = uniqueSources.length > 3 ? ` +${uniqueSources.length - 3}` : '';
+    //   argStrings.push(`${args.results.length} results from ${sourceText}${moreText}`);
+    // }
     
     // Handle date parameters
     if (args.startDate) {
@@ -77,6 +100,11 @@ export const ToolCallIndicator: React.FC<ToolCallIndicatorProps> = ({
     if (args.unit && typeof args.unit === 'string') {
       argStrings.push(args.unit);
     }
+    
+    // // Handle topK parameter
+    // if (args.topK && typeof args.topK === 'number') {
+    //   argStrings.push(`top ${args.topK}`);
+    // }
     
     return argStrings.length > 0 ? ` • ${argStrings.join(', ')}` : '';
   };

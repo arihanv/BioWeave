@@ -29,24 +29,29 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     return null;
   }
 
-  // Check if this message has tool invocations
-  const hasToolInvocations = message.toolInvocations && message.toolInvocations.length > 0;
+  // Find non-RAG tool invocations from the current message for live display.
+  // We show these while the tool is running, before they are cached or finalized.
+  const otherInvocations = message.toolInvocations
+    ? message.toolInvocations.filter(inv => inv.toolName !== 'makeRAGQuery' && !inv.result)
+    : [];
 
   return (
     <View style={styles.container}>
-      {/* Show tool invocations for assistant messages */}
-      {isAssistant && hasToolInvocations && (
+      {/* Show non-RAG tool invocations from the message object */}
+      {isAssistant && otherInvocations.length > 0 && (
         <View style={styles.toolInvocationsContainer}>
-          {message.toolInvocations!.map((toolInvocation, index) => (
+          {otherInvocations.map((toolInvocation, index) => (
             <ToolCallIndicator
               key={`${toolInvocation.toolCallId || toolInvocation.toolName}-${index}`}
               toolName={toolInvocation.toolName}
-              isActive={false} // Completed tool invocations are not active
+              isActive={false} // These are completed invocations shown in history
               args={toolInvocation.args}
             />
           ))}
         </View>
       )}
+
+
 
       {/* Only show message content if it exists */}
       {message.content && (

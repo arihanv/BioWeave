@@ -2,8 +2,6 @@ import React from "react";
 import {
 	KeyboardAvoidingView,
 	LayoutAnimation,
-	NativeScrollEvent,
-	NativeSyntheticEvent,
 	Platform,
 	SafeAreaView,
 	ScrollView,
@@ -19,6 +17,7 @@ import { ChatHeader } from "@/components/ui/ChatHeader";
 import { ChatInput } from "@/components/ui/ChatInput";
 import ConversationListModal from "@/components/ui/ConversationListModal";
 import { MessageBubble } from "@/components/ui/MessageBubble";
+import { RAGResults } from "@/components/ui/RAGResults";
 import { ScrollToBottomButton } from "@/components/ui/ScrollToBottomButton";
 import { ToolCallIndicator } from "@/components/ui/ToolCallIndicator";
 
@@ -36,6 +35,12 @@ import { HealthInputOptions } from "react-native-health";
 // Enable on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+// Define a type for our cached RAG data
+interface CachedRagData {
+	query: string;
+	results: any[]; // Consider defining a stricter type for results
 }
 
 function convertUTCToLocalDateRange(utcDateString: string) {
@@ -91,7 +96,6 @@ export default function App() {
 		args: any;
 	}[]>([]);
 	
-	
 	const [containerHeight, setContainerHeight] = React.useState(0);
 	const [contentHeight, setContentHeight] = React.useState(0);
 	
@@ -121,19 +125,69 @@ export default function App() {
 					return cities[Math.floor(Math.random() * cities.length)];
 				}
 
+				if (toolCall.toolName === "makeRAGQuery") {
+					try {
+						const args = toolCall.args as { query: string; topK?: number };
+						const { query, topK = 4 } = args;
+						
+						console.log("RAG Query - Making API request for:", query);
+						console.log("RAG Query - topK:", topK);
+						
+						// Make request to our RAG API route
+						const response = await fetch("https://expo.ariv.sh/api/rag", {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							body: JSON.stringify({
+								query,
+								topK,
+								minScore: 0.3
+							})
+						});
+						
+						if (!response.ok) {
+							const errorData = await response.json();
+							throw new Error(errorData.error || `HTTP ${response.status}`);
+						}
+						
+						const result = await response.json();
+						
+						console.log("RAG Query - API Response:", result);
+						console.log("RAG Query - Results found:", result.count);
+						
+						// Return a properly formatted result that matches the Vercel AI SDK's expectations
+						return {
+							query: result.query,
+							results: result.results || [],
+							count: result.count || 0
+						};
+					} catch (error) {
+						console.error("RAG Query Error:", error);
+						const args = toolCall.args as { query: string; topK?: number };
+						return {
+							query: args.query,
+							results: [],
+							count: 0,
+							error: `RAG query failed: ${error instanceof Error ? error.message : String(error)}`
+						};
+					}
+				}
+
 				console.log("toolCall", toolCall);
 
-				const args = typeof toolCall.args === "object" && toolCall.args !== null ? toolCall.args : {};
-				const { startDate, endDate } = args as { startDate?: string; endDate?: string };
 				const periodArgs: HealthInputOptions = { period: 1440 };
 
-				if (typeof startDate === "string") {
-					const localStartDate = convertUTCToLocalDateRange(startDate);
-					if (localStartDate) periodArgs.startDate = localStartDate;
-				}
-				if (typeof endDate === "string") {
-					const localEndDate = convertUTCToLocalDateRange(endDate);
-					if (localEndDate) periodArgs.endDate = localEndDate;
+				if (typeof toolCall.args === "object" && toolCall.args !== null) {
+					const { startDate, endDate } = toolCall.args as { startDate?: string; endDate?: string };
+					if (typeof startDate === "string") {
+						const localStartDate = convertUTCToLocalDateRange(startDate);
+						if (localStartDate) periodArgs.startDate = localStartDate;
+					}
+					if (typeof endDate === "string") {
+						const localEndDate = convertUTCToLocalDateRange(endDate);
+						if (localEndDate) periodArgs.endDate = localEndDate;
+					}
 				}
 
 				if (toolCall.toolName === "getStepCount") {
@@ -168,9 +222,11 @@ export default function App() {
 				return `Unknown tool: ${toolCall.toolName}`;
 			} catch (error) {
 				console.error(`Error in ${toolCall.toolName}:`, error);
-				// Always return a result, even if it's an error message
+				// Return a properly formatted error result
 				return {
-					error: `Failed to execute ${toolCall.toolName}: ${error instanceof Error ? error.message : String(error)}`
+					error: `Failed to execute ${toolCall.toolName}: ${error instanceof Error ? error.message : String(error)}`,
+					results: [],
+					count: 0
 				};
 			} finally {
 				// Remove the tool call from active list when done
@@ -180,6 +236,32 @@ export default function App() {
 			}
 		},
 	});
+	
+	// // Memoize RAG data extraction to prevent unnecessary re-computations and avoid flashing
+	// const ragDataByMessage = React.useMemo(() => {
+	// 	const result: Record<string, CachedRagData> = {};
+		
+	// 	for (const message of messages) {
+	// 		if (message.role === 'assistant' && message.toolInvocations) {
+	// 			const ragInvocation = message.toolInvocations.find(
+	// 				inv => inv.toolName === 'makeRAGQuery'
+	// 			);
+
+	// 			// Check if the tool invocation has completed and has a result
+	// 			if (ragInvocation && 'result' in ragInvocation && ragInvocation.result) {
+	// 				const ragResult = ragInvocation.result as any;
+	// 				if (ragResult.results && Array.isArray(ragResult.results) && ragResult.results.length > 0) {
+	// 					result[message.id] = {
+	// 						query: ragResult.query,
+	// 						results: ragResult.results,
+	// 					};
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+		
+	// 	return result;
+	// }, [messages]);
 	
 	const { scrollViewRef, scrollToEnd } = useAutoScroll();
 	const insets = useSafeAreaInsets();
@@ -214,36 +296,18 @@ export default function App() {
 		), [messages]
 	);
 
-	const handleScroll = React.useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-		const scrollData = event.nativeEvent;
-		setLastScrollData(scrollData);
-	}, []);
-
-	// // Update scroll button visibility when data changes
-	React.useEffect(() => {
-		let shouldShowButton = false;
+	// const handleScroll = React.useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+	// 	const scrollData = event.nativeEvent;
+	// 	const { contentOffset, contentSize, layoutMeasurement } = scrollData;
+	// 	const isAtBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 50;
+	// 	const hasScrollableContent = contentSize.height > layoutMeasurement.height;
 		
-		// If we have scroll data from an actual scroll event
-		if (lastScrollData) {
-			const { contentOffset, contentSize, layoutMeasurement } = lastScrollData;
-			const isAtBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 50;
-			const hasScrollableContent = contentSize.height > layoutMeasurement.height;
-			
-			isNearBottom.current = isAtBottom;
-			shouldShowButton = hasScrollableContent && !isAtBottom && renderableMessages.length > 0;
-		} 
-		// If we have container and content height but no scroll data yet
-		else if (contentHeight > 0 && containerHeight > 0) {
-			const hasOverflow = contentHeight > containerHeight + 10; // 10px buffer
-			const isAtBottom = containerHeight >= contentHeight - 50;
-			
-			isNearBottom.current = isAtBottom;
-			shouldShowButton = hasOverflow && !isAtBottom && renderableMessages.length > 0;
-		}
+	// 	isNearBottom.current = isAtBottom;
+	// 	const shouldShowButton = hasScrollableContent && !isAtBottom && renderableMessages.length > 0;
 		
-		// Only update if the value actually changed
-		setShowScrollButton(prev => prev !== shouldShowButton ? shouldShowButton : prev);
-	}, [lastScrollData, renderableMessages.length, contentHeight, containerHeight]);
+	// 	setShowScrollButton(shouldShowButton);
+	// 	setLastScrollData(scrollData);
+	// }, [renderableMessages.length]);
 	
 
 	// Handle layout animations
@@ -339,13 +403,30 @@ export default function App() {
 							keyboardShouldPersistTaps="handled"
 							keyboardDismissMode="interactive"
 						>
-							{renderableMessages.map((message) => (
-								<MessageBubble
-									key={message.id}
-									message={message}
-									isTyping={isLoading && message.id === messages[messages.length - 1]?.id}
-								/>
-							))}
+							{renderableMessages.map((message) => {
+								const ragData = ragDataByMessage[message.id];
+								const isAssistant = message.role === 'assistant';
+								
+								return (
+									<React.Fragment key={message.id}>
+										{/* Show RAG results before the assistant message if available */}
+										{isAssistant && ragData && (
+											<View style={styles.ragResultsWrapper}>
+												<RAGResults
+													query={ragData.query}
+													results={ragData.results}
+												/>
+											</View>
+										)}
+										
+										<MessageBubble
+											message={message}
+											isTyping={isLoading && message.id === messages[messages.length - 1]?.id}
+											// Remove cachedRagData prop since we're showing RAG results separately
+										/>
+									</React.Fragment>
+								);
+							})}
 							
 							{/* Show active tool calls */}
 							{activeToolCalls.map((toolCall, index) => (
@@ -428,5 +509,14 @@ const styles = StyleSheet.create({
 	},
 	messagesContent: {
 		paddingVertical: 16,
+	},
+	ragResultsWrapper: {
+		marginHorizontal: 16,
+		marginBottom: 8,
+		backgroundColor: '#1a1a1a',
+		borderRadius: 12,
+		borderWidth: 1,
+		borderColor: '#2a2a2a',
+		overflow: 'hidden',
 	},
 });

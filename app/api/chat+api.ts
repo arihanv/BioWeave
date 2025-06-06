@@ -1,9 +1,13 @@
-import { openai } from '@ai-sdk/openai';
+import {createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
+
+  const openai = createOpenAI({
+    apiKey: process.env.EXPO_PUBLIC_OPENAI_API_KEY!,
+  });
 
   const result = streamText({
     model: openai('gpt-4.1'),
@@ -53,6 +57,18 @@ export async function POST(req: Request) {
             startDate: z.string().optional().default(new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
             endDate: z.string().optional().default(new Date().toISOString()),
         }),
+      },
+      makeRAGQuery: {
+        description: 'Make a RAG query to the knowledge base for health information.',
+        parameters: z.object({
+            query: z.string(),
+        }),
+        // async execute(args, options) {
+        //     const { query } = args;
+        //     const rag = new RAGQuery(process.env.TURBOPUFFER_API_KEY!);
+        //     const results = await rag.query(query);
+        //     return results;
+        // },
       },
     },
   });
