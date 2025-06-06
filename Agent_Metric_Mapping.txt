@@ -1,0 +1,172 @@
+BioWeave Agent to HealthKit Metric Mapping
+
+This document outlines the primary Apple HealthKit metrics associated with each core BioWeave agent.
+Note: Some metrics might be relevant to multiple agents, and the orchestrator agent will manage such overlaps.
+
+---
+1. Cardiovascular Health Agent
+---
+Primary Metrics:
+  - HKQuantityTypeIdentifierHeartRate
+  - HKQuantityTypeIdentifierRestingHeartRate
+  - HKQuantityTypeIdentifierWalkingHeartRateAverage
+  - HKQuantityTypeIdentifierHeartRateVariabilitySDNN
+  - HKQuantityTypeIdentifierHeartRateRecoveryOneMinute
+  - HKQuantityTypeIdentifierBloodPressureSystolic
+  - HKQuantityTypeIdentifierBloodPressureDiastolic
+  - HKCorrelationTypeIdentifierBloodPressure
+  - HKQuantityTypeIdentifierOxygenSaturation
+  - HKQuantityTypeIdentifierPeripheralPerfusionIndex
+  - HKQuantityTypeIdentifierVO2Max
+  - HKQuantityTypeIdentifierAtrialFibrillationBurden
+ECG Data:
+  - All HKElectrocardiogram classifications (e.g., sinusRhythm, atrialFibrillation)
+  - All HKElectrocardiogramSymptomsStatus
+Relevant Category Symptoms/Events:
+  - HKCategoryTypeIdentifierHighHeartRateEvent
+  - HKCategoryTypeIdentifierLowHeartRateEvent
+  - HKCategoryTypeIdentifierIrregularHeartRhythmEvent
+  - HKCategoryTypeIdentifierLowCardioFitnessEvent
+  - HKCategoryTypeIdentifierChestTightnessOrPain
+  - HKCategoryTypeIdentifierRapidPoundingOrFlutteringHeartbeat
+  - HKCategoryTypeIdentifierSkippedHeartbeat
+
+---
+2. Respiratory Health Agent
+---
+Primary Metrics:
+  - HKQuantityTypeIdentifierRespiratoryRate
+  - HKQuantityTypeIdentifierForcedExpiratoryVolume1
+  - HKQuantityTypeIdentifierForcedVitalCapacity
+  - HKQuantityTypeIdentifierPeakExpiratoryFlowRate
+  - HKQuantityTypeIdentifierInhalerUsage
+Relevant Category Symptoms/Events:
+  - HKCategoryTypeIdentifierCoughing
+  - HKCategoryTypeIdentifierShortnessOfBreath
+  - HKCategoryTypeIdentifierSinusCongestion
+  - HKCategoryTypeIdentifierSoreThroat
+  - HKCategoryTypeIdentifierWheezing
+
+---
+3. General Vitals & Body Composition Agent
+---
+Primary Metrics:
+  - HKQuantityTypeIdentifierBodyMass
+  - HKQuantityTypeIdentifierHeight
+  - HKQuantityTypeIdentifierBodyMassIndex
+  - HKQuantityTypeIdentifierBodyFatPercentage
+  - HKQuantityTypeIdentifierLeanBodyMass
+  - HKQuantityTypeIdentifierWaistCircumference
+  - HKQuantityTypeIdentifierBodyTemperature
+  - HKQuantityTypeIdentifierBasalBodyTemperature
+Relevant Category Symptoms/Events (General Well-being):
+  - HKCategoryTypeIdentifierFever
+  - HKCategoryTypeIdentifierChills
+  - HKCategoryTypeIdentifierFatigue
+  - HKCategoryTypeIdentifierGeneralizedBodyAche
+  - HKCategoryTypeIdentifierDizziness
+  - HKCategoryTypeIdentifierFainting
+
+---
+4. Nutrition Agent
+---
+Primary Metrics:
+  - HKQuantityTypeIdentifierDietaryEnergyConsumed
+  - HKQuantityTypeIdentifierDietaryProtein
+  - HKQuantityTypeIdentifierDietaryCarbohydrates
+  - HKQuantityTypeIdentifierDietaryFatTotal
+  - HKQuantityTypeIdentifierDietaryFatSaturated
+  - HKQuantityTypeIdentifierDietaryFatMonounsaturated
+  - HKQuantityTypeIdentifierDietaryFatPolyunsaturated
+  - HKQuantityTypeIdentifierDietaryCholesterol
+  - HKQuantityTypeIdentifierDietaryFiber
+  - HKQuantityTypeIdentifierDietarySugar
+  - HKQuantityTypeIdentifierDietarySodium
+  - HKQuantityTypeIdentifierDietaryPotassium
+  - HKQuantityTypeIdentifierDietaryCalcium
+  - HKQuantityTypeIdentifierDietaryIron
+  - HKQuantityTypeIdentifierDietaryMagnesium
+  - HKQuantityTypeIdentifierDietaryZinc
+  - HKQuantityTypeIdentifierDietaryPhosphorus
+  - HKQuantityTypeIdentifierDietaryIodine
+  - HKQuantityTypeIdentifierDietaryManganese
+  - HKQuantityTypeIdentifierDietaryChromium
+  - HKQuantityTypeIdentifierDietarySelenium
+  - HKQuantityTypeIdentifierDietaryCopper
+  - HKQuantityTypeIdentifierDietaryBiotin
+  - HKQuantityTypeIdentifierDietaryFolate
+  - HKQuantityTypeIdentifierDietaryNiacin
+  - HKQuantityTypeIdentifierDietaryPantothenicAcid
+  - HKQuantityTypeIdentifierDietaryRiboflavin
+  - HKQuantityTypeIdentifierDietaryThiamin
+  - HKQuantityTypeIdentifierDietaryVitaminA
+  - HKQuantityTypeIdentifierDietaryVitaminB6
+  - HKQuantityTypeIdentifierDietaryVitaminB12
+  - HKQuantityTypeIdentifierDietaryVitaminC
+  - HKQuantityTypeIdentifierDietaryVitaminD
+  - HKQuantityTypeIdentifierDietaryVitaminE
+  - HKQuantityTypeIdentifierDietaryVitaminK
+  - HKQuantityTypeIdentifierDietaryWater
+  - HKQuantityTypeIdentifierDietaryCaffeine
+  - HKQuantityTypeIdentifierBloodGlucose
+  - HKQuantityTypeIdentifierNumberOfAlcoholicBeverages
+Correlations:
+  - HKCorrelationTypeIdentifierFood
+Relevant Category Symptoms/Events (can be diet-related):
+  - HKCategoryTypeIdentifierAppetiteChanges
+  - HKCategoryTypeIdentifierBloating
+  - HKCategoryTypeIdentifierConstipation
+  - HKCategoryTypeIdentifierDiarrhea
+  - HKCategoryTypeIdentifierHeartburn
+  - HKCategoryTypeIdentifierNausea
+  - HKCategoryTypeIdentifierMorningSickness (if applicable)
+  - HKCategoryTypeIdentifierVomiting
+
+---
+5. Movement Agent
+---
+Primary Metrics:
+  - HKQuantityTypeIdentifierStepCount
+  - HKQuantityTypeIdentifierDistanceWalkingRunning
+  - HKQuantityTypeIdentifierActiveEnergyBurned
+  - HKQuantityTypeIdentifierBasalEnergyBurned
+  - HKQuantityTypeIdentifierAppleExerciseTime
+  - HKQuantityTypeIdentifierAppleMoveTime
+  - HKQuantityTypeIdentifierAppleStandTime
+  - HKQuantityTypeIdentifierFlightsClimbed
+  - HKQuantityTypeIdentifierPushCount
+  - HKQuantityTypeIdentifierDistanceCycling
+  - HKQuantityTypeIdentifierCyclingSpeed
+  - HKQuantityTypeIdentifierCyclingCadence
+  - HKQuantityTypeIdentifierCyclingPower
+  - HKQuantityTypeIdentifierCyclingFunctionalThresholdPower
+  - HKQuantityTypeIdentifierDistanceSwimming
+  - HKQuantityTypeIdentifierSwimmingStrokeCount
+  - HKQuantityTypeIdentifierDistanceRowing
+  - HKQuantityTypeIdentifierRowingSpeed
+  - HKQuantityTypeIdentifierDistanceCrossCountrySkiing
+  - HKQuantityTypeIdentifierDistanceDownhillSnowSports
+  - HKQuantityTypeIdentifierDistancePaddleSports
+  - HKQuantityTypeIdentifierPaddleSportsSpeed
+  - HKQuantityTypeIdentifierDistanceSkatingSports
+  - HKQuantityTypeIdentifierDistanceWheelchair
+  - HKQuantityTypeIdentifierAppleWalkingSteadiness
+  - HKQuantityTypeIdentifierWalkingAsymmetryPercentage
+  - HKQuantityTypeIdentifierWalkingDoubleSupportPercentage
+  - HKQuantityTypeIdentifierWalkingSpeed
+  - HKQuantityTypeIdentifierWalkingStepLength
+  - HKQuantityTypeIdentifierRunningGroundContactTime
+  - HKQuantityTypeIdentifierRunningPower
+  - HKQuantityTypeIdentifierRunningSpeed
+  - HKQuantityTypeIdentifierRunningStrideLength
+  - HKQuantityTypeIdentifierRunningVerticalOscillation
+  - HKQuantityTypeIdentifierSixMinuteWalkTestDistance
+  - HKQuantityTypeIdentifierStairAscentSpeed
+  - HKQuantityTypeIdentifierStairDescentSpeed
+  - HKQuantityTypeIdentifierPhysicalEffort
+  - HKQuantityTypeIdentifierEstimatedWorkoutEffortScore (or HKQuantityTypeIdentifierWorkoutEffortScore)
+Workout Data:
+  - All HKWorkout activity types and associated data (duration, energy burned, distance, etc.)
+Relevant Category Symptoms/Events:
+  - HKCategoryTypeIdentifierLowerBackPain (can be movement-related)
+  - HKQuantityTypeIdentifierNumberOfTimesFallen

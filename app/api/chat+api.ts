@@ -2,11 +2,11 @@
 import { GOOGLE_GENERATIVE_AI_API_KEY, TEST_VARIABLE } from '../../constants/api-keys';
 
 // Import core dependencies
-import { google } from '@ai-sdk/google';
-import { generateText, CoreMessage } from 'ai';
+// import { google } from '@ai-sdk/google'; // Potentially unused if POST only calls RAG
+// import { generateText, CoreMessage } from 'ai'; // Potentially unused if POST only calls RAG
 
 // Log the API key status for debugging
-console.log('Environment check via constants:', { 
+console.log('Environment check via constants:', {
   hasApiKey: !!GOOGLE_GENERATIVE_AI_API_KEY,
   hasTestVariable: !!TEST_VARIABLE,
   testVariableValue: TEST_VARIABLE
@@ -36,28 +36,28 @@ function logRequestDetails(req: Request, method: string) {
 function corsHeaders(req: Request) {
   const origin = req.headers.get('origin');
   console.log(`Setting CORS headers for origin: ${origin || 'unknown'}`);
-  
+
   // Create a Headers object rather than returning a plain object
   const headers = new Headers();
-  
+
   // Set CORS headers explicitly
   headers.set('Access-Control-Allow-Origin', '*'); // Use wildcard for testing
   headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   headers.set('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
-  
+
   return headers;
 }
 
 // Handle preflight requests
 export async function OPTIONS(req: Request) {
   logRequestDetails(req, 'OPTIONS');
-  
+
   // Use our helper to get a consistent set of CORS headers
   const headers = corsHeaders(req);
-  
+
   console.log('Responding to OPTIONS with headers:', Object.fromEntries(headers.entries()));
-  
+
   return new Response(null, {
     status: 204,
     headers,
@@ -67,38 +67,36 @@ export async function OPTIONS(req: Request) {
 // Simple GET endpoint for testing
 export async function GET(req: Request) {
   logRequestDetails(req, 'GET');
-  
+
   // Create the response payload
-  const responseBody = JSON.stringify({ 
-    status: 'ok', 
-    message: 'API is working', 
+  const responseBody = JSON.stringify({
+    status: 'ok',
+    message: 'API is working',
     timestamp: new Date().toISOString()
   });
-  
+
   // Get the CORS headers
   const headers = corsHeaders(req);
-  
+
   // Add Content-Type header
   headers.set('Content-Type', 'application/json');
-  
+
   console.log('Responding to GET with headers:', Object.fromEntries(headers.entries()));
-  
+
   return new Response(responseBody, {
     status: 200,
     headers,
   });
 }
 
-// Gemini streaming backend implementation
-// These imports are now at the top of the file
-
+// POST handler from rag-implementation branch (HEAD)
 export async function POST(req: Request) {
   logRequestDetails(req, 'POST');
 
   try {
     // Use our imported constant instead of process.env
-    const apiKey = GOOGLE_GENERATIVE_AI_API_KEY;
-    
+    // const apiKey = GOOGLE_GENERATIVE_AI_API_KEY; // This is available but not directly used if RAG API handles LLM
+
     // Parse the incoming request using req.json()
     let prompt = '';
     try {
@@ -108,11 +106,11 @@ export async function POST(req: Request) {
       const userQuery = messages && messages.length > 0 ? messages[messages.length - 1].content : '';
 
       if (!userQuery) {
+        const errorHeaders = corsHeaders(req);
+        errorHeaders.set('Content-Type', 'application/json');
         return new Response(JSON.stringify({ error: 'No message found in request' }), {
           status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: errorHeaders,
         });
       }
       prompt = userQuery;
@@ -125,12 +123,14 @@ export async function POST(req: Request) {
       }
     } catch (err) {
       console.error('Failed to parse request body as JSON:', err);
+      const errorHeaders = corsHeaders(req);
+      errorHeaders.set('Content-Type', 'application/json');
       return new Response(JSON.stringify({ error: 'Invalid JSON in request body' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: errorHeaders,
       });
     }
-    
+
     // Call RAG API
     const ragApiUrl = 'http://127.0.0.1:8000/query'; // Ensure your RAG API is running here
     console.log(`Attempting to call RAG API at ${ragApiUrl} with query: "${prompt}"`);
@@ -148,7 +148,7 @@ export async function POST(req: Request) {
       responseHeaders.set('Content-Type', 'application/json'); // Set content type for all responses from here
 
       if (!ragApiResponse.ok) {
-        const errorBodyText = await ragApiResponse.text(); 
+        const errorBodyText = await ragApiResponse.text();
         console.error(`RAG API call failed: ${ragApiResponse.status} ${ragApiResponse.statusText}. Body: ${errorBodyText}`);
         let errorDetail = `RAG API error: ${ragApiResponse.status} ${ragApiResponse.statusText}. ${errorBodyText}`;
         try {
@@ -158,7 +158,7 @@ export async function POST(req: Request) {
         } catch (e) { /* Not a JSON error body, stick with text */ }
 
         return new Response(JSON.stringify({ error: errorDetail }), {
-          status: ragApiResponse.status, 
+          status: ragApiResponse.status,
           headers: responseHeaders,
         });
       }
@@ -167,10 +167,10 @@ export async function POST(req: Request) {
       console.log('Received successful response from RAG API:', ragData);
 
       const finalAnswer = ragData.answer;
-      const retrievedChunks = ragData.retrieved_chunks; 
+      const retrievedChunks = ragData.retrieved_chunks;
 
       console.log('Responding to POST with RAG API answer. Headers:', Object.fromEntries(responseHeaders.entries()));
-      
+
       return new Response(JSON.stringify({ text: finalAnswer, retrieved_chunks: retrievedChunks }), {
         status: 200,
         headers: responseHeaders,
@@ -190,13 +190,11 @@ export async function POST(req: Request) {
     let errorMessage = 'Failed to process chat request';
     let statusCode = 500;
 
-    // Check for API key or authentication related errors
     if (error.message && error.message.toLowerCase().includes('api key')) {
       errorMessage = 'API Key error: ' + error.message;
       statusCode = 401; // Unauthorized
       console.error('Potential API Key issue detected.');
     } else if (error.cause) {
-      // Some SDKs wrap errors in a 'cause' property
       console.error('Error Cause:', error.cause);
       if (typeof error.cause === 'object' && error.cause !== null && 'message' in error.cause) {
         const causeMessage = (error.cause as { message: string }).message;
@@ -207,10 +205,8 @@ export async function POST(req: Request) {
         }
       }
     }
-    
-    // Log the full error object for more details if available
+
     if (typeof error === 'object' && error !== null) {
-      // Attempt to stringify, but handle circular references or large objects
       try {
         console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
       } catch (stringifyError) {
@@ -221,10 +217,9 @@ export async function POST(req: Request) {
       }
     }
 
-    // Ensure CORS headers are set even for errors
     const headers = corsHeaders(req);
     headers.set('Content-Type', 'application/json');
-    
+
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: statusCode,
       headers,
